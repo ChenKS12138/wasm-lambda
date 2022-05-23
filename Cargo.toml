@@ -7,12 +7,16 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.53"
+async-trait = "0.1.53"
 bridge = {path = "crates/bridge", package = "wasm-lambda-bridge", features = ["message"]}
 bson = "2.2.0"
-httparse = {version = "1.6.0"}
-reqwest = {version = "0.11.10", features = ["blocking"]}
+hyper = {version = "0.14.18", features = ["full"]}
+map-macro = "0.2.1"
+reqwest = {version = "0.11.10"}
+route-recognizer = "0.3.1"
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
+sqlx = {version = "0.5.13", features = ["mysql", "runtime-tokio-native-tls", "migrate", "json"]}
 tokio = {version = "1.17.0", features = ["full"]}
 wasmtime = "0.37.0"
 wasmtime-wasi = "0.37.0"

@@ -6,7 +6,7 @@ use std::{
 use super::vm::{InstanceIOBuffer, InstanceState};
 use bridge::message;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-use wasmtime::{Caller, Extern, Linker};
+use wasmtime::{Caller, Extern, FuncType, Linker, ValType};
 
 const MODULE_NAME: &str = "wasm-lambda-bridge";
 
@@ -14,7 +14,7 @@ pub fn register(
     linker: &mut Linker<InstanceState>,
     io_buffer: InstanceIOBuffer,
 ) -> anyhow::Result<()> {
-    let fetchResult: Arc<Mutex<LinkedList<message::Response>>> =
+    let fetch_result: Arc<Mutex<LinkedList<message::Response>>> =
         Arc::new(Mutex::new(LinkedList::new()));
     let io_buffer_clone = io_buffer.clone();
     linker.func_wrap(
@@ -64,58 +64,61 @@ pub fn register(
         },
     )?;
 
-    let fetch_result_clone = fetchResult.clone();
-    linker.func_wrap(
+    let fetch_result_clone = fetch_result.clone();
+    linker.func_wrap2_async(
         MODULE_NAME,
         "http_fetch_send",
-        move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
-            let mem = match caller.get_export("memory") {
-                Some(Extern::Memory(mem)) => mem,
-                _ => {
-                    panic!("memory not found");
+        move |mut caller, ptr: i32, len: u64| {
+            let fetch_result_clone = fetch_result_clone.clone();
+            Box::new(async move {
+                let mem = match caller.get_export("memory") {
+                    Some(Extern::Memory(mem)) => mem,
+                    _ => {
+                        panic!("memory not found");
+                    }
+                };
+                let request_data = mem
+                    .data(&mut caller)
+                    .get(ptr as usize..(ptr as usize + len as usize))
+                    .unwrap();
+                let request_data = bson::from_slice::<message::Request>(&request_data).unwrap();
+                let client = reqwest::Client::new();
+                let client = match request_data.method.as_str() {
+                    "GET" => client.get(&request_data.path),
+                    "POST" => client.post(&request_data.path),
+                    "HEAD" => client.head(&request_data.path),
+                    "PUT" => client.put(&request_data.path),
+                    "DELETE" => client.delete(&request_data.path),
+                    "PATCH" => client.patch(&request_data.path),
+                    _ => {
+                        panic!("unsupported method");
+                    }
+                };
+                let mut headers = HeaderMap::new();
+                for header in request_data.headers.iter() {
+                    headers.append(
+                        HeaderName::from_lowercase(header.0.as_bytes()).unwrap(),
+                        HeaderValue::from_str(header.1.as_str()).unwrap(),
+                    );
                 }
-            };
-            let request_data = mem
-                .data(&mut caller)
-                .get(ptr as usize..(ptr as usize + len as usize))
-                .unwrap();
-            let request_data = bson::from_slice::<message::Request>(&request_data).unwrap();
-            let client = reqwest::blocking::Client::new();
-            let client = match request_data.method.as_str() {
-                "GET" => client.get(&request_data.path),
-                "POST" => client.post(&request_data.path),
-                "HEAD" => client.head(&request_data.path),
-                "PUT" => client.put(&request_data.path),
-                "DELETE" => client.delete(&request_data.path),
-                "PATCH" => client.patch(&request_data.path),
-                _ => {
-                    panic!("unsupported method");
-                }
-            };
-            let mut headers = HeaderMap::new();
-            for header in request_data.headers.iter() {
-                headers.append(
-                    HeaderName::from_lowercase(header.0.as_bytes()).unwrap(),
-                    HeaderValue::from_str(header.1.as_str()).unwrap(),
-                );
-            }
-            let client = client.headers(headers);
-            let client = match request_data.body {
-                Some(body) => client.body(body),
-                None => client,
-            };
-            let response = client.send().unwrap();
-            let response_data = message::Response {
-                status: response.status().as_u16() as u64,
-                headers: HashMap::new(),
-                body: Some(response.bytes().unwrap().to_vec()),
-            };
-            fetch_result_clone.lock().unwrap().push_back(response_data);
-            len
+                let client = client.headers(headers);
+                let client = match request_data.body {
+                    Some(body) => client.body(body),
+                    None => client,
+                };
+                let response = client.send().await.unwrap();
+                let response_data = message::Response {
+                    status: response.status().as_u16() as u64,
+                    headers: HashMap::new(),
+                    body: Some(response.bytes().await.unwrap().to_vec()),
+                };
+                fetch_result_clone.lock().unwrap().push_back(response_data);
+                len
+            })
         },
     )?;
 
-    let fetch_result_clone = fetchResult.clone();
+    let fetch_result_clone = fetch_result.clone();
     linker.func_wrap(
         MODULE_NAME,
         "http_fetch_recv",
