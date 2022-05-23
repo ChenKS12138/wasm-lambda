@@ -25,7 +25,7 @@ impl InstanceState {
 }
 
 pub struct Instance {
-    engine: Engine,
+    // engine: Engine,
     linker: Linker<InstanceState>,
     store: Store<InstanceState>,
     module: Module,
@@ -38,25 +38,16 @@ impl Instance {
         F: Fn(&mut Engine) -> anyhow::Result<Module>,
     {
         let wasi_ctx = WasiCtxBuilder::new().inherit_stdio().build();
-        println!("wasi_ctx created");
         let mut engine = Engine::default();
-        println!("engine created");
         let data = InstanceState::new(wasi_ctx);
-        println!("data created");
         let mut linker = Linker::new(&engine);
-        println!("linker created");
         let store = Store::new(&engine, data);
-        println!("store created");
         let module = load_module(&mut engine)?;
-        println!("module created");
         let io_buffer = Arc::new((Mutex::new(LinkedList::new()), Mutex::new(LinkedList::new())));
-        println!("io_buffer created");
         register(&mut linker, io_buffer.clone())?;
-        println!("register done");
         add_to_linker(&mut linker, |ctx: &mut InstanceState| &mut ctx.wasi)?;
-        println!("add_to_linker done");
         Ok(Self {
-            engine,
+            // engine,
             linker,
             store,
             module,
