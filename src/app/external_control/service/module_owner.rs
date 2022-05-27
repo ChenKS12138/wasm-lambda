@@ -2,7 +2,7 @@ use hyper::{Body, Response};
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use crate::{app::external_control::RequestCtx, db_pool, dto, json_response};
+use crate::{app::infra::RequestCtx, db_pool, dto, json_response};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CreateUserRequestDto {

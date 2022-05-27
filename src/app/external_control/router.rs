@@ -3,11 +3,12 @@ use std::sync::Arc;
 use hyper::{Body, Method, Response, StatusCode};
 
 use crate::{
-    app::external_control::{infra::Router, service},
+    app::{
+        external_control::service,
+        infra::{RequestCtx, Router},
+    },
     make_route,
 };
-
-use super::infra::RequestCtx;
 
 async fn index(_ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     Ok(Response::builder()

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 use crate::{
-    app::external_control::RequestCtx, dao, db_pool, dto, json_response, path_params, query_string,
+    app::infra::RequestCtx, dao, db_pool, dto, json_response, path_params, query_string,
 };
 
 #[derive(Debug, Serialize, Deserialize)]

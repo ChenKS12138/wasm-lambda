@@ -10,13 +10,11 @@ use hyper::{
 
 use crate::db::dao::Dao;
 
-use self::router::make_router;
-
 use super::infra::{AppState, Router};
 
 pub async fn make_serve(dao: Arc<Dao>) -> anyhow::Result<()> {
     let app_state = AppState { dao };
-    let router = make_router();
+    let router = router::make_router();
 
     let service = make_service_fn(move |_| {
         let router = router.clone();
@@ -28,7 +26,8 @@ pub async fn make_serve(dao: Arc<Dao>) -> anyhow::Result<()> {
             }))
         }
     });
-    let addr: SocketAddr = "0.0.0.0:4444".parse()?;
+
+    let addr: SocketAddr = "0.0.0.0:3333".parse()?;
     Server::bind(&addr).serve(service).await?;
     Ok(())
 }

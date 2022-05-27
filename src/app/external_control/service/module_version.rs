@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use hex;
 use ring::digest;
 
-use crate::{app::external_control::RequestCtx, body, db_pool, json_response, path_params};
+use crate::{app::infra::RequestCtx, body, db_pool, json_response, path_params};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GetModuleVersionResultDto {

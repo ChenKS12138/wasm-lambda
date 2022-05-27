@@ -8,7 +8,7 @@ mod db;
 async fn main() -> anyhow::Result<()> {
     let mut db = sqlx::MySqlPool::connect("mariadb://local:local@10.211.55.2:3306/db").await?;
     sqlx::migrate!("./migrations").run(&db).await?;
-    
+
     // let mut instance = core::vm::Instance::new(|engine| -> anyhow::Result<Module> {
     //     let m = Module::from_file(&engine, "/home/cattchen/codes/github.com/ChenKS12138/wasm-lambda/target/wasm32-wasi/debug/hello-world.wasi.wasm")?;
     //     Ok(m)
@@ -25,10 +25,9 @@ async fn main() -> anyhow::Result<()> {
 
     let dao = Arc::new(db::dao::Dao::new(db));
 
-
-    let (task1,task2) = tokio::join!(
+    let (task1, task2) = tokio::join!(
         app::external_control::make_serve(dao.clone()),
-        app::http_entry::make_serve()
+        app::http_entry::make_serve(dao.clone())
     );
     task1?;
     task2?;

@@ -37,6 +37,11 @@ macro_rules! make_route {
             .or_insert(route_recognizer::Router::new())
             .add($path, Box::new($handler));
     };
+    ($route:ident,[ $($method:path),*],$path:expr,$handler:expr ) => {
+        $(
+            make_route!($route, $method, $path, $handler);
+        )*
+    };
 }
 
 impl Router {
@@ -130,6 +135,24 @@ macro_rules! path_params {
     };
 }
 
+#[macro_export]
+macro_rules! http_method {
+    ($ctx:expr) => {
+        $ctx.request.method().to_string()
+    };
+}
+
+#[macro_export]
+macro_rules! http_headers {
+    ($ctx:expr) => {
+        $ctx.request
+            .headers()
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_str().unwrap().to_string()))
+            .collect::<std::collections::HashMap<String, String>>()
+    };
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub dao: Arc<Dao>,
@@ -161,7 +184,7 @@ impl From<JsonResult> for Body {
 #[macro_export]
 macro_rules! json_result {
     ($code:expr,$message:expr,$data:expr) => {
-        crate::app::external_control::infra::JsonResult::new(
+        crate::app::infra::JsonResult::new(
             $code,
             String::from($message),
             Some(serde_json::Value::from(serde_json::to_value($data)?)),

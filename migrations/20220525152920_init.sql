@@ -8,7 +8,12 @@ DROP TABLE IF EXISTS module_owner;
 
 CREATE TABLE module_owner (
     owner_id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    owner_name VARCHAR(255) NOT NULL
+    owner_name VARCHAR(255) NOT NULL,
+
+    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT UQ_owner_name UNIQUE (owner_name)
 );
 
 CREATE TABLE module (
@@ -18,8 +23,12 @@ CREATE TABLE module (
     owner_id INT(11) UNSIGNED NOT NULL,
     version_id INT(11) UNSIGNED DEFAULT NULL,
 
+    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     CONSTRAINT FK_module_owner_id FOREIGN KEY (owner_id) REFERENCES module_owner(owner_id),
     CONSTRAINT FK_module_version_id FOREIGN KEY (version_id) REFERENCES module_version (version_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT UQ_module_name UNIQUE (module_name),
     CHECK (JSON_VALID(module_env))
 );
 
@@ -28,6 +37,9 @@ CREATE TABLE module_version (
     version_digest_value VARCHAR(255) NOT NULL,
     version_raw_value LONGBLOB NOT NULL,
     module_id INT(11) UNSIGNED NOT NULL,
+
+    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_module_id FOREIGN KEY (module_id) REFERENCES module(module_id) ON DELETE CASCADE ON UPDATE NO ACTION
 );

@@ -32,11 +32,11 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn new<F>(load_module: F) -> anyhow::Result<Self>
+    pub fn new<F>(load_module: F, envs: &[(String, String)]) -> anyhow::Result<Self>
     where
         F: Fn(&mut Engine) -> anyhow::Result<Module>,
     {
-        let wasi_ctx = WasiCtxBuilder::new().inherit_stdio().build();
+        let wasi_ctx = WasiCtxBuilder::new().inherit_stdio().envs(envs)?.build();
         let data = InstanceState::new(wasi_ctx);
 
         let mut engine = Engine::new(Config::new().async_support(true)).unwrap();
