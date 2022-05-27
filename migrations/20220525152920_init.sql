@@ -36,6 +36,7 @@ CREATE TABLE module_version (
     version_id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     version_digest_value VARCHAR(255) NOT NULL,
     version_raw_value LONGBLOB NOT NULL,
+    version_precompile LONGBLOB DEFAULT NULL,
     module_id INT(11) UNSIGNED NOT NULL,
 
     create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -5,7 +5,7 @@ use hyper::{Body, Method, Request, Response, StatusCode};
 use route_recognizer::{Params, Router as InternalRouter};
 use serde::{Deserialize, Serialize};
 
-use crate::db::dao::Dao;
+use crate::{core::vm::Environment, db::dao::Dao};
 
 #[async_trait]
 pub trait Handler: Send + Sync + 'static {
@@ -156,6 +156,7 @@ macro_rules! http_headers {
 #[derive(Clone)]
 pub struct AppState {
     pub dao: Arc<Dao>,
+    pub environment: Arc<Environment>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,48 +1,44 @@
-use std::{
-    collections::{HashMap, LinkedList},
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 
-use super::vm::{InstanceIOBuffer, InstanceState};
+use super::vm::InstanceState;
 use bridge::value;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-use wasmtime::{Caller, Extern, FuncType, Linker, ValType};
+use wasmtime::{Caller, Extern, Linker};
 
 const MODULE_NAME: &str = "wasm-lambda-bridge";
 
-pub fn register(
-    linker: &mut Linker<InstanceState>,
-    io_buffer: InstanceIOBuffer,
-) -> anyhow::Result<()> {
-    let fetch_result: Arc<Mutex<LinkedList<value::Response>>> =
-        Arc::new(Mutex::new(LinkedList::new()));
-    let io_buffer_clone = io_buffer.clone();
+pub fn add_to_linker(linker: &mut Linker<InstanceState>) -> anyhow::Result<()> {
     linker.func_wrap(
         MODULE_NAME,
         "event_recv",
         move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
-            let mut events = io_buffer_clone.0.lock().unwrap();
-            let event = events.front().unwrap();
-            let event_data = bson::to_vec(&event).unwrap();
-            if event_data.len() > len as usize || ptr == 0 {
-                return event_data.len() as u64;
-            }
-            let mem = match caller.get_export("memory") {
-                Some(Extern::Memory(mem)) => mem,
-                _ => {
-                    panic!("memory not found");
+            if let Some(event) = {
+                let mut io_buffer_0 = caller.data().io_buffer.0.lock().unwrap();
+                io_buffer_0.pop_front()
+            } {
+                let event_data = bson::to_vec(&event).unwrap();
+                if event_data.len() > len as usize || ptr == 0 {
+                    let mut io_buffer_0 = caller.data().io_buffer.0.lock().unwrap();
+                    io_buffer_0.push_back(event);
+                    return event_data.len() as u64;
                 }
-            };
-            let data = mem.data_mut(&mut caller).get_mut(ptr as usize..).unwrap();
-            unsafe {
-                std::ptr::copy(event_data.as_ptr(), data.as_mut_ptr(), len as usize);
+                let mem = match caller.get_export("memory") {
+                    Some(Extern::Memory(mem)) => mem,
+                    _ => {
+                        panic!("memory not found");
+                    }
+                };
+                let data = mem.data_mut(&mut caller).get_mut(ptr as usize..).unwrap();
+                unsafe {
+                    std::ptr::copy(event_data.as_ptr(), data.as_mut_ptr(), len as usize);
+                }
+                event_data.len() as u64
+            } else {
+                return 0;
             }
-            events.pop_front();
-            event_data.len() as u64
         },
     )?;
 
-    let io_buffer_clone = io_buffer.clone();
     linker.func_wrap(
         MODULE_NAME,
         "event_reply",
@@ -58,18 +54,17 @@ pub fn register(
                 .get(ptr as usize..(ptr as usize + len as usize))
                 .unwrap();
             let response = bson::from_slice::<value::Response>(&response_data).unwrap();
-            let mut responses = io_buffer_clone.1.lock().unwrap();
+            let mut responses = caller.data().io_buffer.1.lock().unwrap();
             responses.push_back(response);
             len
         },
     )?;
 
-    let fetch_result_clone = fetch_result.clone();
     linker.func_wrap2_async(
         MODULE_NAME,
         "http_fetch_send",
         move |mut caller, ptr: i32, len: u64| {
-            let fetch_result_clone = fetch_result_clone.clone();
+            let io_buffer_clone = caller.data().io_buffer.clone();
             Box::new(async move {
                 let mem = match caller.get_export("memory") {
                     Some(Extern::Memory(mem)) => mem,
@@ -112,35 +107,41 @@ pub fn register(
                     headers: HashMap::new(),
                     body: Some(response.bytes().await.unwrap().to_vec()),
                 };
-                fetch_result_clone.lock().unwrap().push_back(response_data);
+                let mut fetch_result = io_buffer_clone.2.lock().unwrap();
+                fetch_result.push_back(response_data);
                 len
             })
         },
     )?;
 
-    let fetch_result_clone = fetch_result.clone();
     linker.func_wrap(
         MODULE_NAME,
         "http_fetch_recv",
         move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
-            let mut fetch_result = fetch_result_clone.lock().unwrap();
-            let response = fetch_result.front().unwrap();
-            let response_data = bson::to_vec(&response).unwrap();
-            if response_data.len() > len as usize || ptr == 0 {
-                return response_data.len() as u64;
-            }
-            let mem = match caller.get_export("memory") {
-                Some(Extern::Memory(mem)) => mem,
-                _ => {
-                    panic!("memory not found");
+            if let Some(response) = {
+                let mut io_buffer_2 = caller.data().io_buffer.2.lock().unwrap();
+                io_buffer_2.pop_front()
+            } {
+                let response_data = bson::to_vec(&response).unwrap();
+                if response_data.len() > len as usize || ptr == 0 {
+                    let mut io_buffer_2 = caller.data().io_buffer.2.lock().unwrap();
+                    io_buffer_2.push_back(response);
+                    return response_data.len() as u64;
                 }
-            };
-            let data = mem.data_mut(&mut caller).get_mut(ptr as usize..).unwrap();
-            unsafe {
-                std::ptr::copy(response_data.as_ptr(), data.as_mut_ptr(), len as usize);
+                let mem = match caller.get_export("memory") {
+                    Some(Extern::Memory(mem)) => mem,
+                    _ => {
+                        panic!("memory not found");
+                    }
+                };
+                let data = mem.data_mut(&mut caller).get_mut(ptr as usize..).unwrap();
+                unsafe {
+                    std::ptr::copy(response_data.as_ptr(), data.as_mut_ptr(), len as usize);
+                }
+                response_data.len() as u64
+            } else {
+                return 0;
             }
-            fetch_result.pop_front();
-            response_data.len() as u64
         },
     )?;
     Ok(())

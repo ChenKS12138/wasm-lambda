@@ -9,8 +9,10 @@ use sqlx::FromRow;
 use wasmtime::Module;
 
 use crate::{
-    app::infra::RequestCtx, body, core, db_pool, http_headers, http_method, json_response,
-    path_params,
+    app::infra::RequestCtx,
+    body,
+    core::{self, vm::Environment},
+    db_pool, http_headers, http_method, json_response, path_params,
 };
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
@@ -18,6 +20,7 @@ struct EntryModuleQuery {
     module_env: Option<String>,
     version_digest_value: Option<String>,
     version_raw_value: Option<Vec<u8>>,
+    version_precompile: Option<Vec<u8>>,
 }
 
 pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
@@ -34,7 +37,8 @@ pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
         r#"SELECT
     module.module_env,
     module_version.version_digest_value,
-    module_version.version_raw_value
+    module_version.version_raw_value,
+    module_version.version_precompile
 FROM
     module LEFT JOIN module_version ON module.module_id = module_version.module_id
     WHERE module.module_name = ?
@@ -52,11 +56,6 @@ FROM
     let envs: HashMap<String, String> = serde_json::from_str(envs.as_str()).unwrap();
     let envs: Vec<(String, String)> = envs.into_iter().map(|(k, v)| (k, v)).collect();
 
-    let mut instance = core::vm::Instance::new(
-        move |engine| Ok(Module::from_binary(&engine, &binary)?),
-        &envs,
-    )?;
-
     let event_request = bridge::value::TriggerEvent::EventHttpRequest(bridge::value::Request {
         path,
         method,
@@ -64,7 +63,17 @@ FROM
         body: Some(body),
     });
 
-    let event_response = instance.run(event_request).await?;
+    let module = if let Some(precompile) = record.version_precompile {
+        unsafe { Module::deserialize(&ctx.app_state.environment.engine, &precompile) }?
+    } else {
+        Module::new(&ctx.app_state.environment.engine, &binary)?
+    };
+
+    let event_response = ctx
+        .app_state
+        .environment
+        .run(module, &envs, event_request)
+        .await?;
 
     Ok(match event_response {
         None => Response::builder()

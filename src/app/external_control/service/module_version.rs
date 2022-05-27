@@ -34,9 +34,11 @@ pub async fn create_module_version(ctx: RequestCtx) -> anyhow::Result<Response<B
     let digest_result = digest::digest(&digest::SHA256, &body);
     let digest_value = hex::encode(digest_result.as_ref());
 
+    let precompile = ctx.app_state.environment.engine.precompile_module(&body)?;
+
     sqlx::query!(
-        r#"INSERT INTO module_version( module_id, version_digest_value, version_raw_value) VALUES (?,?,?)"#,
-        module_id,digest_value,body
+        r#"INSERT INTO module_version( module_id, version_digest_value, version_raw_value,version_precompile) VALUES (?,?,?,?)"#,
+        module_id,digest_value,body,precompile
     )
     .execute(&db_pool!(ctx))
     .await?;

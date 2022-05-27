@@ -8,12 +8,11 @@ use hyper::{
     Server,
 };
 
-use crate::db::dao::Dao;
+use crate::{core::vm::Environment, db::dao::Dao};
 
 use super::infra::{AppState, Router};
 
-pub async fn make_serve(dao: Arc<Dao>) -> anyhow::Result<()> {
-    let app_state = AppState { dao };
+pub async fn make_serve(app_state: AppState) -> anyhow::Result<()> {
     let router = router::make_router();
 
     let service = make_service_fn(move |_| {
