@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
-use bridge::message;
+use bridge::value;
 
 fn main() -> bridge::api::Result<()> {
     let event = bridge::api::event_recv()?;
     println!("{:?}", event);
-    let response = bridge::message::Response {
+    let response = bridge::value::Response {
         status: 200,
         headers: HashMap::new(),
         body: Some("hello world\n".try_into()?),
     };
     bridge::api::event_reply(response)?;
-    // let request = message::Request {
+    // let request = value::Request {
     //     path: "https://icanhazip.com".to_string(),
     //     headers: HashMap::new(),
     //     method: "GET".to_string(),

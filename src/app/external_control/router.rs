@@ -19,13 +19,18 @@ async fn index(_ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
 pub fn make_router() -> Arc<Router> {
     let mut router: Router = Router::default();
 
+    // index
     make_route!(router, Method::GET, "/", index);
+
+    // module_owner
     make_route!(
         router,
         Method::POST,
         "/module-owner",
         service::module_owner::create_module_owner
     );
+
+    // module
     make_route!(
         router,
         Method::POST,
@@ -44,6 +49,32 @@ pub fn make_router() -> Arc<Router> {
         Method::PUT,
         "/module/:module-id/env",
         service::module::set_module_env
+    );
+    make_route!(
+        router,
+        Method::PUT,
+        "/module/:module-id/version",
+        service::module::set_module_version
+    );
+
+    // module_version
+    make_route!(
+        router,
+        Method::GET,
+        "/module/:module-id/version",
+        service::module_version::get_module_version
+    );
+    make_route!(
+        router,
+        Method::POST,
+        "/module/:module-id/version",
+        service::module_version::create_module_version
+    );
+    make_route!(
+        router,
+        Method::DELETE,
+        "/module/:module-id/version/:version-id",
+        service::module_version::delete_module_version
     );
 
     Arc::new(router)

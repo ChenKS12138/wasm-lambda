@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::vm::{InstanceIOBuffer, InstanceState};
-use bridge::message;
+use bridge::value;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use wasmtime::{Caller, Extern, FuncType, Linker, ValType};
 
@@ -14,7 +14,7 @@ pub fn register(
     linker: &mut Linker<InstanceState>,
     io_buffer: InstanceIOBuffer,
 ) -> anyhow::Result<()> {
-    let fetch_result: Arc<Mutex<LinkedList<message::Response>>> =
+    let fetch_result: Arc<Mutex<LinkedList<value::Response>>> =
         Arc::new(Mutex::new(LinkedList::new()));
     let io_buffer_clone = io_buffer.clone();
     linker.func_wrap(
@@ -57,7 +57,7 @@ pub fn register(
                 .data(&mut caller)
                 .get(ptr as usize..(ptr as usize + len as usize))
                 .unwrap();
-            let response = bson::from_slice::<message::Response>(&response_data).unwrap();
+            let response = bson::from_slice::<value::Response>(&response_data).unwrap();
             let mut responses = io_buffer_clone.1.lock().unwrap();
             responses.push_back(response);
             len
@@ -81,7 +81,7 @@ pub fn register(
                     .data(&mut caller)
                     .get(ptr as usize..(ptr as usize + len as usize))
                     .unwrap();
-                let request_data = bson::from_slice::<message::Request>(&request_data).unwrap();
+                let request_data = bson::from_slice::<value::Request>(&request_data).unwrap();
                 let client = reqwest::Client::new();
                 let client = match request_data.method.as_str() {
                     "GET" => client.get(&request_data.path),
@@ -107,7 +107,7 @@ pub fn register(
                     None => client,
                 };
                 let response = client.send().await.unwrap();
-                let response_data = message::Response {
+                let response_data = value::Response {
                     status: response.status().as_u16() as u64,
                     headers: HashMap::new(),
                     body: Some(response.bytes().await.unwrap().to_vec()),

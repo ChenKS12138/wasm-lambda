@@ -1,21 +1,60 @@
 use hyper::{Body, Response};
+use serde::{Deserialize, Serialize};
 
-use crate::{app::external_control::RequestCtx, json_response};
+use hex;
+use ring::digest;
 
+use crate::{app::external_control::RequestCtx, body, db_pool, json_response, path_params};
 
-
-pub async fn set_module_version(ctx:RequestCtx) -> anyhow::Result<Response<Body>> {
-    json_response!(0,"ok","hello")
+#[derive(Debug, Serialize, Deserialize)]
+struct GetModuleVersionResultDto {
+    #[serde(rename = "versionId")]
+    version_id: u32,
+    #[serde(rename = "versionDigestValue")]
+    version_digest_value: String,
 }
 
-pub async fn create_module_version(ctx:RequestCtx) -> anyhow::Result<Response<Body>> {
-    json_response!(0,"ok","hello")
+pub async fn get_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
+    let params = path_params!(ctx);
+    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let records = sqlx::query_as!(
+        GetModuleVersionResultDto,
+        r#"SELECT version_id,version_digest_value FROM module_version WHERE module_id = ?"#,
+        module_id
+    )
+    .fetch_all(&db_pool!(ctx))
+    .await?;
+    json_response!(0, "ok", records)
 }
 
-pub async fn get_module_version(ctx:RequestCtx) -> anyhow::Result<Response<Body>> {
-    json_response!(0,"ok","hello")
+pub async fn create_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
+    let params = path_params!(ctx);
+    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let body = body!(ctx).clone();
+    let digest_result = digest::digest(&digest::SHA256, &body);
+    let digest_value = hex::encode(digest_result.as_ref());
+
+    sqlx::query!(
+        r#"INSERT INTO module_version( module_id, version_digest_value, version_raw_value) VALUES (?,?,?)"#,
+        module_id,digest_value,body
+    )
+    .execute(&db_pool!(ctx))
+    .await?;
+    json_response!(0, "ok", true)
 }
 
-pub async fn delete_module_version(ctx:RequestCtx) -> anyhow::Result<Response<Body>> {
-    json_response!(0,"ok","hello")
+pub async fn delete_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
+    let params = path_params!(ctx);
+    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let version_id: u32 = params.find("version-id").unwrap().parse()?;
+
+    sqlx::query!(
+        r#"DELETE FROM module_version WHERE module_id = ? AND version_id = ?"#,
+        module_id,
+        version_id
+    )
+    .execute(&db_pool!(ctx))
+    .await?;
+
+    json_response!(0, "ok", true)
 }

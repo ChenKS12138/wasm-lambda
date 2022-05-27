@@ -81,13 +81,18 @@ pub struct RequestCtx {
 }
 
 #[macro_export]
+macro_rules! body {
+    ($ctx:expr) => {
+        &hyper::body::to_bytes($ctx.request.into_body())
+            .await?
+            .to_vec()
+    };
+}
+
+#[macro_export]
 macro_rules! dto {
     ($ctx:expr,$dto:ty) => {
-        serde_json::from_slice::<$dto>(
-            &hyper::body::to_bytes($ctx.request.into_body())
-                .await?
-                .to_vec(),
-        )?
+        serde_json::from_slice::<$dto>(crate::body!($ctx))?
     };
 }
 

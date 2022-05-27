@@ -1,6 +1,6 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-use bridge::message;
+use bridge::value;
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server, StatusCode,
@@ -34,7 +34,7 @@ async fn entry(req: Request<Body>) -> anyhow::Result<Response<Body>> {
     let method = req.method().to_string();
     let body = hyper::body::to_bytes(req.into_body()).await?;
     let whole_body = body.to_vec();
-    let evt = message::TriggerEvent::EventHttpRequest(message::Request {
+    let evt = value::TriggerEvent::EventHttpRequest(value::Request {
         path,
         headers,
         method,

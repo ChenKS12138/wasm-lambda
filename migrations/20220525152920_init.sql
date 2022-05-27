@@ -25,9 +25,8 @@ CREATE TABLE module (
 
 CREATE TABLE module_version (
     version_id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    version_hash_value VARCHAR(255) NOT NULL,
-    version_raw_value BINARY(255) NOT NULL,
-    version_pre_compiled BINARY(255) DEFAULT NULL,
+    version_digest_value VARCHAR(255) NOT NULL,
+    version_raw_value LONGBLOB NOT NULL,
     module_id INT(11) UNSIGNED NOT NULL,
 
     CONSTRAINT FK_module_id FOREIGN KEY (module_id) REFERENCES module(module_id) ON DELETE CASCADE ON UPDATE NO ACTION

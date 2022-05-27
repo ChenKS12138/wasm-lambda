@@ -9,7 +9,7 @@ version = "0.1.0"
 
 api = []
 default = []
-message = []
+value = []
 
 [dependencies]
 anyhow = "1.0.57"

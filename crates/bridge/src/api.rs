@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::message;
+use crate::value;
 use bson;
 
 pub type Result<T> = anyhow::Result<T>;
@@ -28,17 +28,17 @@ mod hostcall {
     }
 }
 
-pub fn event_recv() -> Result<message::TriggerEvent> {
+pub fn event_recv() -> Result<value::TriggerEvent> {
     unsafe {
         let size = hostcall::event_recv(std::ptr::null_mut(), 0) as usize;
         let mut data = Box::new(vec![0; size]);
         hostcall::event_recv(data.as_mut_ptr(), size as u64);
-        let evt = bson::from_slice::<message::TriggerEvent>(&data[..size]).unwrap();
+        let evt = bson::from_slice::<value::TriggerEvent>(&data[..size]).unwrap();
         Ok(evt)
     }
 }
 
-pub fn event_reply(reply: message::Response) -> Result<()> {
+pub fn event_reply(reply: value::Response) -> Result<()> {
     let data = bson::to_vec(&reply).unwrap();
     unsafe {
         hostcall::event_reply(data.as_ptr(), data.len() as u64);
@@ -46,7 +46,7 @@ pub fn event_reply(reply: message::Response) -> Result<()> {
     Ok(())
 }
 
-pub fn http_fetch(req: message::Request) -> Result<message::Response> {
+pub fn http_fetch(req: value::Request) -> Result<value::Response> {
     let data = bson::to_vec(&req).unwrap();
     unsafe {
         hostcall::http_fetch_send(data.as_ptr(), data.len() as u64);
@@ -55,12 +55,12 @@ pub fn http_fetch(req: message::Request) -> Result<message::Response> {
         let size = hostcall::http_fetch_recv(std::ptr::null_mut(), 0) as usize;
         let mut data = Box::new(vec![0; size]);
         hostcall::http_fetch_recv(data.as_mut_ptr(), size as u64);
-        let resp = bson::from_slice::<message::Response>(&data[..size]).unwrap();
+        let resp = bson::from_slice::<value::Response>(&data[..size]).unwrap();
         Ok(resp)
     }
 }
 
-pub fn module_call(module_name: String, req: message::Request) -> Result<message::Response> {
+pub fn module_call(module_name: String, req: value::Request) -> Result<value::Response> {
     let data = bson::to_vec(&req).unwrap();
     unsafe {
         hostcall::module_call_send(
@@ -74,7 +74,7 @@ pub fn module_call(module_name: String, req: message::Request) -> Result<message
         let size = hostcall::module_call_recv(std::ptr::null_mut(), 0) as usize;
         let mut data = Box::new(vec![0; size]);
         hostcall::module_call_recv(data.as_mut_ptr(), size as u64);
-        let resp = bson::from_slice::<message::Response>(&data[..size]).unwrap();
+        let resp = bson::from_slice::<value::Response>(&data[..size]).unwrap();
         Ok(resp)
     }
 }

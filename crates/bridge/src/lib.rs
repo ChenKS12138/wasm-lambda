@@ -1,5 +1,5 @@
 #[cfg(feature = "api")]
 pub mod api;
 
-#[cfg(feature = "message")]
-pub mod message;
+#[cfg(feature = "value")]
+pub mod value;

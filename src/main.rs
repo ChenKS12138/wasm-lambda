@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
     //     let m = Module::from_file(&engine, "/home/cattchen/codes/github.com/ChenKS12138/wasm-lambda/target/wasm32-wasi/debug/hello-world.wasi.wasm")?;
     //     Ok(m)
     // })?;
-    // let evt = message::TriggerEvent::EventHttpRequest(message::Request {
+    // let evt = value::TriggerEvent::EventHttpRequest(value::Request {
     //     path: "www.baidu.com".to_string(),
     //     headers: HashMap::new(),
     //     method: "GET".to_string(),

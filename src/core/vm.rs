@@ -3,15 +3,15 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use bridge::message;
+use bridge::value;
 use wasmtime::{Config, Engine, Linker, Module, Store};
 use wasmtime_wasi::{add_to_linker, WasiCtx, WasiCtxBuilder};
 
 use super::hostcall::register;
 
 pub type InstanceIOBuffer = Arc<(
-    Mutex<LinkedList<message::TriggerEvent>>,
-    Mutex<LinkedList<message::Response>>,
+    Mutex<LinkedList<value::TriggerEvent>>,
+    Mutex<LinkedList<value::Response>>,
 )>;
 
 pub struct InstanceState {
@@ -56,8 +56,8 @@ impl Instance {
     }
     pub async fn run(
         &mut self,
-        event: message::TriggerEvent,
-    ) -> anyhow::Result<Option<message::Response>> {
+        event: value::TriggerEvent,
+    ) -> anyhow::Result<Option<value::Response>> {
         let instance = self
             .linker
             .instantiate_async(&mut self.store, &self.module)
