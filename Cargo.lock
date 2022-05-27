@@ -2459,6 +2459,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
+ "url",
  "wasm-lambda-bridge",
  "wasmtime",
  "wasmtime-wasi",

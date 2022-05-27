@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 mod app;
 mod core;
 mod db;
@@ -20,8 +22,12 @@ async fn main() -> anyhow::Result<()> {
     // let resp = instance.run(evt).await?;
     // println!("{:?}", resp);
     // println!("end");
+
+    let dao = Arc::new(db::dao::Dao::new(db));
+
+
     let (task1,task2) = tokio::join!(
-        app::external_control::make_serve(),
+        app::external_control::make_serve(dao.clone()),
         app::http_entry::make_serve()
     );
     task1?;

@@ -1,76 +1,36 @@
-use std::{net::SocketAddr, collections::HashMap, future::Future, sync::Arc};
+pub mod infra;
+pub mod router;
+pub mod service;
 
-use async_trait::async_trait;
+use std::{net::SocketAddr, sync::Arc};
 
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Server,
+};
 
-use hyper::{service::{make_service_fn, service_fn}, Response, Body, Request, Server, Method, StatusCode};
-use route_recognizer::{Router as InternalRouter, Params};
+use crate::{app::external_control::infra::AppState, db::dao::Dao};
 
+use self::{
+    infra::{RequestCtx, Router},
+    router::make_router,
+};
 
+pub async fn make_serve(dao: Arc<Dao>) -> anyhow::Result<()> {
+    let app_state = AppState { dao };
+    let router = make_router();
 
-#[async_trait]
-pub trait Handler:Send+Sync+'static {
-    async fn invoke(&self, req: Request<Body>, params: Params) -> anyhow::Result<Response<Body>>;
-}
-
-
-#[async_trait]
-impl<F:Send+Sync+'static,FOut> Handler for F where F:Fn(Request<Body>,Params)->FOut,FOut:Future<Output = anyhow::Result<Response<Body>>> + Send +'static{
-    async fn invoke(&self, req: Request<Body>, params: Params) -> anyhow::Result<Response<Body>> {
-        (self)(req,params).await
-    }
-}
-
-#[derive(Default)]
-struct Router {
-    router_map:HashMap< Method,InternalRouter<Box<dyn Handler>>>
-}
-
-impl Router {
-    async fn handle(router:Arc<Router>,req:Request<Body>) -> anyhow::Result<Response<Body>> {
-        if let Some(m) = router.router_map.get(req.method()) {
-            if let Ok(m) = m.recognize(req.uri().path()) {
-                let handler = m.handler().clone();
-                let params = m.params().clone();
-                return handler.invoke(req,params).await;
-            }
-        }
-        return not_found(req,Params::default()).await;
-    }
-}
-
-macro_rules! router_method {
-    ($router:ident,$method:path,$path:expr,$handler:expr) => {
-        $router.router_map.entry($method).or_insert(InternalRouter::new()).add($path,Box::new($handler));
-    };
-}
-
-
-
-pub async fn make_serve() -> anyhow::Result<()>{
-    let mut router:Router = Router::default();
-
-    router_method!(router,Method::GET,"/",index);
-    
-    let router = Arc::new(router);
-    let service = make_service_fn(move |_| { 
+    let service = make_service_fn(move |_| {
         let router = router.clone();
-        
+        let app_state = app_state.clone();
+
         async {
-            Ok::<_, anyhow::Error>(service_fn(move |req|{
-                Router::handle(router.clone(),req)
-            })) 
+            Ok::<_, anyhow::Error>(service_fn(move |req| {
+                Router::handle(router.clone(), req, app_state.clone())
+            }))
         }
     });
     let addr: SocketAddr = "0.0.0.0:4444".parse()?;
     Server::bind(&addr).serve(service).await?;
     Ok(())
-}
-
-async fn index(_req:Request<Body>,_params:Params) -> anyhow::Result<Response<Body>>{
-    Ok(Response::builder().status(StatusCode::NOT_FOUND).body(Body::from("Welcome !")).unwrap())
-}
-
-async fn not_found(_req:Request<Body>,_params:Params) -> anyhow::Result<Response<Body>>{
-    Ok(Response::builder().status(StatusCode::NOT_FOUND).body(Body::from("Not Found")).unwrap())
 }
