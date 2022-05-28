@@ -1,0 +1,11 @@
+[package]
+edition = "2021"
+name = "wasm-lambda-bridge"
+publish = true
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bridge-codegen = {path = "../wasm-lambda-bridge-codegen", package = "wasm-lambda-bridge-codegen"}
+bridge-core = {path = "../wasm-lambda-bridge-core", package = "wasm-lambda-bridge-core", features = ["hostcall", "value"]}
