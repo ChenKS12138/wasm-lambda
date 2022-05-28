@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::app::http_entry::service::entry::fetch_module_from_dao;
+
 use super::vm::InstanceState;
 use bridge::value;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
@@ -141,6 +143,93 @@ pub fn add_to_linker(linker: &mut Linker<InstanceState>) -> anyhow::Result<()> {
                 response_data.len() as u64
             } else {
                 return 0;
+            }
+        },
+    )?;
+    linker.func_wrap4_async(
+        MODULE_NAME,
+        "module_call_send",
+        move |mut caller, module_name_ptr: i32, module_name_len: u64, ptr: i32, len: u64| {
+            let app_state = caller.data().app_state.clone();
+            let io_buffer_clone = caller.data().io_buffer.clone();
+            let current_module_name = caller.data().module_name.clone();
+            Box::new(async move {
+                let mem = match caller.get_export("memory") {
+                    Some(Extern::Memory(mem)) => mem,
+                    _ => {
+                        panic!("memory not found");
+                    }
+                };
+                let module_name_data = mem
+                    .data(&mut caller)
+                    .get(
+                        module_name_ptr as usize
+                            ..(module_name_ptr as usize + module_name_len as usize),
+                    )
+                    .unwrap();
+                let module_name = String::from_utf8(module_name_data.to_vec()).unwrap();
+
+                let request_data = mem
+                    .data(&mut caller)
+                    .get(ptr as usize..(ptr as usize + len as usize))
+                    .unwrap();
+                let request_data = bson::from_slice::<value::Request>(&request_data).unwrap();
+                let (module, envs, _version_digest_value) = fetch_module_from_dao(
+                    app_state.dao.clone(),
+                    &app_state.environment.engine,
+                    &module_name,
+                    "latest",
+                )
+                .await
+                .unwrap();
+                let response = app_state
+                    .environment
+                    .run(
+                        module_name.clone(),
+                        app_state.clone(),
+                        module,
+                        &envs,
+                        bridge::value::TriggerEvent::EventInternalModuleCall(
+                            current_module_name,
+                            request_data,
+                        ),
+                    )
+                    .await
+                    .unwrap();
+                if let Some(response) = response {
+                    io_buffer_clone.2.lock().unwrap().push_back(response);
+                }
+                len
+            })
+        },
+    )?;
+    linker.func_wrap(
+        MODULE_NAME,
+        "module_call_recv",
+        move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
+            if let Some(response) = {
+                let mut io_buffer_2 = caller.data().io_buffer.2.lock().unwrap();
+                io_buffer_2.pop_front()
+            } {
+                let response_data = bson::to_vec(&response).unwrap();
+                if response_data.len() > len as usize || ptr == 0 {
+                    let mut io_buffer_2 = caller.data().io_buffer.2.lock().unwrap();
+                    io_buffer_2.push_back(response);
+                    return response_data.len() as u64;
+                }
+                let mem = match caller.get_export("memory") {
+                    Some(Extern::Memory(mem)) => mem,
+                    _ => {
+                        panic!("memory not found");
+                    }
+                };
+                let data = mem.data_mut(&mut caller).get_mut(ptr as usize..).unwrap();
+                unsafe {
+                    std::ptr::copy(response_data.as_ptr(), data.as_mut_ptr(), len as usize);
+                }
+                response_data.len() as u64
+            } else {
+                0
             }
         },
     )?;

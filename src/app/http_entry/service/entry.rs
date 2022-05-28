@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use hyper::{
     header::{HeaderName, HeaderValue},
@@ -6,32 +6,27 @@ use hyper::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use wasmtime::Module;
+use wasmtime::{Engine, Module};
 
 use crate::{
-    app::infra::RequestCtx,
-    body,
-    core::{self, vm::Environment},
-    db_pool, http_headers, http_method, json_response, path_params,
+    app::infra::RequestCtx, body, db::dao::Dao, db_pool, http_headers, http_method, json_response,
+    path_params,
 };
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
-struct EntryModuleQuery {
+pub struct EntryModuleQuery {
     module_env: Option<String>,
     version_digest_value: Option<String>,
     version_raw_value: Option<Vec<u8>>,
     version_precompile: Option<Vec<u8>>,
 }
 
-pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
-    let params = path_params!(ctx);
-    let app_name = params.find("app_name").unwrap().clone();
-    let version_alias = params.find("version_alias").unwrap().clone();
-    let path = "/".to_string() + params.find("path").unwrap_or("").clone();
-    let headers = http_headers!(ctx);
-    let method = http_method!(ctx);
-    let body = body!(ctx).clone();
-
+pub async fn fetch_module_from_dao(
+    dao: Arc<Dao>,
+    engine: &Engine,
+    app_name: &str,
+    version_alias: &str,
+) -> anyhow::Result<(Module, Vec<(String, String)>, String)> {
     let record = sqlx::query_as!(
         EntryModuleQuery,
         r#"SELECT
@@ -47,7 +42,7 @@ FROM
 "#,
         app_name
     )
-    .fetch_one(&db_pool!(ctx))
+    .fetch_one(&dao.pool)
     .await?;
 
     let binary = record.version_raw_value.unwrap();
@@ -56,6 +51,28 @@ FROM
     let envs: HashMap<String, String> = serde_json::from_str(envs.as_str()).unwrap();
     let envs: Vec<(String, String)> = envs.into_iter().map(|(k, v)| (k, v)).collect();
 
+    let module = if let Some(precompile) = record.version_precompile {
+        unsafe { Module::deserialize(&engine, &precompile) }?
+    } else {
+        Module::new(&engine, &binary)?
+    };
+
+    Ok((
+        module,
+        envs,
+        record.version_digest_value.unwrap_or_default(),
+    ))
+}
+
+pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
+    let params = path_params!(ctx);
+    let app_name = params.find("app_name").unwrap().clone();
+    let version_alias = params.find("version_alias").unwrap().clone();
+    let path = "/".to_string() + params.find("path").unwrap_or("").clone();
+    let headers = http_headers!(ctx);
+    let method = http_method!(ctx);
+    let body = body!(ctx).clone();
+
     let event_request = bridge::value::TriggerEvent::EventHttpRequest(bridge::value::Request {
         path,
         method,
@@ -63,33 +80,35 @@ FROM
         body: Some(body),
     });
 
-    let module = if let Some(precompile) = record.version_precompile {
-        unsafe { Module::deserialize(&ctx.app_state.environment.engine, &precompile) }?
-    } else {
-        Module::new(&ctx.app_state.environment.engine, &binary)?
-    };
+    let (module, envs, version_digest_value) = fetch_module_from_dao(
+        ctx.app_state.dao.clone(),
+        &ctx.app_state.environment.engine,
+        app_name,
+        version_alias,
+    )
+    .await?;
 
     let event_response = ctx
         .app_state
         .environment
-        .run(module, &envs, event_request)
+        .run(
+            app_name.to_string(),
+            ctx.app_state.clone(),
+            module,
+            &envs,
+            event_request,
+        )
         .await?;
 
     Ok(match event_response {
         None => Response::builder()
             .status(StatusCode::SERVICE_UNAVAILABLE)
-            .header(
-                "X-Module-Digest",
-                record.version_digest_value.unwrap_or_default(),
-            )
+            .header("X-Module-Digest", version_digest_value)
             .body(Body::empty()),
         Some(event_response) => {
             let mut response = Response::builder()
                 .status(StatusCode::from_u16(event_response.status as u16)?)
-                .header(
-                    "X-Module-Digest",
-                    record.version_digest_value.unwrap_or_default(),
-                );
+                .header("X-Module-Digest", version_digest_value);
             if let Some(headers) = response.headers_mut() {
                 for (k, v) in event_response.headers {
                     headers.append(HeaderName::from_str(&k)?, HeaderValue::from_str(&v)?);

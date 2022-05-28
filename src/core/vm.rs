@@ -7,28 +7,34 @@ use bridge::value;
 use wasmtime::{Config, Engine, Linker, Module, Store};
 use wasmtime_wasi::{self, WasiCtx, WasiCtxBuilder};
 
+use crate::app::infra::AppState;
+
 use super::hostcall;
 
 pub type InstanceIOBuffer = Arc<(
     Mutex<LinkedList<value::TriggerEvent>>, // in event
     Mutex<LinkedList<value::Response>>,     // out event
-    Mutex<LinkedList<value::Response>>,     // recv http_fetch
+    Mutex<LinkedList<value::Response>>,     // recv http_fetch/module_call
 )>;
 
 pub struct InstanceState {
+    pub module_name: String,
     pub wasi: WasiCtx,
     pub io_buffer: InstanceIOBuffer,
+    pub app_state: AppState,
 }
 
 impl InstanceState {
-    fn new(wasi_ctx: WasiCtx) -> Self {
+    fn new(module_name: String, wasi_ctx: WasiCtx, app_state: AppState) -> Self {
         Self {
+            module_name,
             wasi: wasi_ctx,
             io_buffer: Arc::new((
                 Mutex::new(LinkedList::new()),
                 Mutex::new(LinkedList::new()),
                 Mutex::new(LinkedList::new()),
             )),
+            app_state,
         }
     }
 }
@@ -48,12 +54,14 @@ impl Environment {
     }
     pub async fn run(
         &self,
+        module_name: String,
+        app_state: AppState,
         module: Module,
         envs: &[(String, String)],
         event: bridge::value::TriggerEvent,
     ) -> anyhow::Result<Option<value::Response>> {
-        let wasi_ctx = WasiCtxBuilder::new().envs(envs)?.build();
-        let data = InstanceState::new(wasi_ctx);
+        let wasi_ctx = WasiCtxBuilder::new().inherit_stdio().envs(envs)?.build();
+        let data = InstanceState::new(module_name, wasi_ctx, app_state);
         {
             let mut io_buffer_evt_in = data.io_buffer.0.lock().unwrap();
             io_buffer_evt_in.push_back(event);
