@@ -2,7 +2,8 @@ use std::{collections::HashMap, future::Future, sync::Arc};
 
 use async_trait::async_trait;
 use hyper::{Body, Method, Request, Response, StatusCode};
-use route_recognizer::{Params, Router as InternalRouter};
+// use route_recognizer::{Params, Router as InternalRouter};
+use matchit::{Params, Router as InternalRouter};
 use serde::{Deserialize, Serialize};
 
 use crate::{core::vm::Environment, db::dao::Dao};
@@ -25,7 +26,7 @@ where
 
 #[derive(Default)]
 pub struct Router {
-    pub router_map: HashMap<Method, InternalRouter<Box<dyn Handler>>>,
+    pub router_map: HashMap<Method, InternalRouter<Arc<Box<dyn Handler>>>>,
 }
 
 #[macro_export]
@@ -34,8 +35,8 @@ macro_rules! make_route {
         $router
             .router_map
             .entry($method)
-            .or_insert(route_recognizer::Router::new())
-            .add($path, Box::new($handler));
+            .or_insert(matchit::Router::new())
+            .insert($path, Arc::new(Box::new($handler))).unwrap();
     };
     ($route:ident,[ $($method:path),*],$path:expr,$handler:expr ) => {
         $(
@@ -51,9 +52,13 @@ impl Router {
         app_state: AppState,
     ) -> anyhow::Result<Response<Body>> {
         if let Some(m) = router.router_map.get(req.method()) {
-            if let Ok(m) = m.recognize(req.uri().path()) {
-                let handler = m.handler().clone();
-                let params = m.params().clone();
+            if let Ok(m) = m.at(req.uri().path()) {
+                let params: HashMap<String, String> = m
+                    .params
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect();
+                let handler = &*m.value.clone();
                 return handler
                     .invoke(RequestCtx {
                         request: req,
@@ -65,7 +70,7 @@ impl Router {
         }
         return not_found(RequestCtx {
             request: req,
-            params: Params::default(),
+            params: HashMap::default(),
             app_state: app_state.clone(),
         })
         .await;
@@ -81,7 +86,7 @@ async fn not_found(_ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
 
 pub struct RequestCtx {
     pub request: Request<Body>,
-    pub params: Params,
+    pub params: HashMap<String, String>,
     pub app_state: AppState,
 }
 

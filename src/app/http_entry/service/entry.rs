@@ -66,9 +66,12 @@ FROM
 
 pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let app_name = params.find("app_name").unwrap().clone();
-    let version_alias = params.find("version_alias").unwrap().clone();
-    let path = "/".to_string() + params.find("path").unwrap_or("").clone();
+    let app_name = params.get("app_name").unwrap().clone();
+    let version_alias = params.get("version_alias").unwrap().clone();
+    let path = params
+        .get("path")
+        .and_then(|v| Some(v.clone()))
+        .unwrap_or("/".to_string());
     let headers = http_headers!(ctx);
     let method = http_method!(ctx);
     let body = body!(ctx).clone();
@@ -83,8 +86,8 @@ pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let (module, envs, version_digest_value) = fetch_module_from_dao(
         ctx.app_state.dao.clone(),
         &ctx.app_state.environment.engine,
-        app_name,
-        version_alias,
+        &app_name,
+        &version_alias,
     )
     .await?;
 

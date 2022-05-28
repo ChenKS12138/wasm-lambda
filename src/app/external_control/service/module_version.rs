@@ -16,7 +16,7 @@ struct GetModuleVersionResultDto {
 
 pub async fn get_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let module_id: u32 = params.get("module-id").unwrap().parse()?;
     let records = sqlx::query_as!(
         GetModuleVersionResultDto,
         r#"SELECT version_id,version_digest_value FROM module_version WHERE module_id = ?"#,
@@ -29,7 +29,7 @@ pub async fn get_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body
 
 pub async fn create_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let module_id: u32 = params.get("module-id").unwrap().parse()?;
     let body = body!(ctx).clone();
     let digest_result = digest::digest(&digest::SHA256, &body);
     let digest_value = hex::encode(digest_result.as_ref());
@@ -47,8 +47,8 @@ pub async fn create_module_version(ctx: RequestCtx) -> anyhow::Result<Response<B
 
 pub async fn delete_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let module_id: u32 = params.find("module-id").unwrap().parse()?;
-    let version_id: u32 = params.find("version-id").unwrap().parse()?;
+    let module_id: u32 = params.get("module-id").unwrap().parse()?;
+    let version_id: u32 = params.get("version-id").unwrap().parse()?;
 
     sqlx::query!(
         r#"DELETE FROM module_version WHERE module_id = ? AND version_id = ?"#,

@@ -2,9 +2,7 @@ use hyper::{Body, Response};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::{
-    app::infra::RequestCtx, dao, db_pool, dto, json_response, path_params, query_string,
-};
+use crate::{app::infra::RequestCtx, dao, db_pool, dto, json_response, path_params, query_string};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CreateModuleRequestDto {
@@ -67,7 +65,7 @@ struct SetModuleEnvRequestDto {
 
 pub async fn set_module_env(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let module_id: u32 = params.get("module-id").unwrap().parse()?;
     let set_module_env_request_dto = dto!(ctx, SetModuleEnvRequestDto);
     sqlx::query!(
         "UPDATE module SET module_env = ? WHERE module_id = ?",
@@ -81,7 +79,7 @@ pub async fn set_module_env(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
 
 pub async fn delete_module(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let module_id: u32 = params.get("module-id").unwrap().parse()?;
     sqlx::query!("DELETE FROM module WHERE module_id = ?", module_id)
         .execute(&db_pool!(ctx))
         .await?;
@@ -97,7 +95,7 @@ struct SetModuleVersionRequestDto {
 pub async fn set_module_version(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let set_module_version_request_dto = dto!(ctx, SetModuleVersionRequestDto);
     let params = path_params!(ctx);
-    let module_id: u32 = params.find("module-id").unwrap().parse()?;
+    let module_id: u32 = params.get("module-id").unwrap().parse()?;
     sqlx::query!(
         "UPDATE module SET version_id = ? WHERE module_id = ?",
         set_module_version_request_dto.version_id,
