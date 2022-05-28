@@ -1,9 +1,41 @@
 use std::{collections::HashMap, env};
 
-use bridge::value;
+use bridge::{
+    codegen,
+    core::{hostcall, value, Result},
+};
 
-fn main() -> bridge::api::Result<()> {
-    let event = bridge::api::event_recv()?;
+fn main() -> Result<()> {
+    runner()
+}
+
+#[codegen::main]
+fn my_main(
+    event: bridge::core::value::TriggerEvent,
+) -> bridge::core::Result<bridge::core::value::Response> {
+    Ok(value::Response {
+        status: 200,
+        headers: HashMap::new(),
+        body: Some("hello world\n".try_into()?),
+    })
+}
+
+fn my_main_expected() -> Result<()> {
+    let event = hostcall::event_recv()?;
+
+    // let response = my_main(event)?;
+    // my_main(event)?;
+    let response = value::Response {
+        status: 200,
+        headers: HashMap::new(),
+        body: Some("hello world\n".try_into()?),
+    };
+    hostcall::event_reply(response).unwrap();
+    Ok(())
+}
+
+fn runner() -> Result<()> {
+    let event = hostcall::event_recv()?;
 
     // if let bridge::value::TriggerEvent::EventInternalModuleCall(source, event) = event {
     //     println!("{:?} {:?}", source, event);
@@ -18,12 +50,12 @@ fn main() -> bridge::api::Result<()> {
     //     println!("{:?}", module_call_response);
     // }
 
-    let response = bridge::value::Response {
+    let response = value::Response {
         status: 200,
         headers: HashMap::new(),
         body: Some("hello world\n".try_into()?),
     };
-    bridge::api::event_reply(response).unwrap();
+    hostcall::event_reply(response).unwrap();
     Ok(())
 }
 

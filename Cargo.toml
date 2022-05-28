@@ -11,7 +11,7 @@ entry_profile = []
 [dependencies]
 anyhow = "1.0.53"
 async-trait = "0.1.53"
-bridge = {path = "crates/bridge", package = "wasm-lambda-bridge", features = ["value"]}
+bridge = {path = "crates/bridge-core", package = "wasm-lambda-bridge-core", features = ["value"]}
 bson = "2.2.0"
 colored = "2.0.0"
 hex = "0.4.3"
@@ -33,6 +33,8 @@ wasmtime-wasi = "0.37.0"
 
 members = [
   "crates/bridge",
+  "crates/bridge-codegen",
+  "crates/bridge-core",
   "examples/hello-world",
 ]
 

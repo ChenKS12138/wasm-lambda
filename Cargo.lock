@@ -2496,13 +2496,30 @@ dependencies = [
  "sqlx",
  "tokio",
  "url",
- "wasm-lambda-bridge",
+ "wasm-lambda-bridge-core",
  "wasmtime",
  "wasmtime-wasi",
 ]
 
 [[package]]
 name = "wasm-lambda-bridge"
+version = "0.1.0"
+dependencies = [
+ "wasm-lambda-bridge-codegen",
+ "wasm-lambda-bridge-core",
+]
+
+[[package]]
+name = "wasm-lambda-bridge-codegen"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+ "wasm-lambda-bridge-core",
+]
+
+[[package]]
+name = "wasm-lambda-bridge-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",

@@ -1,0 +1,16 @@
+[package]
+edition = "2021"
+name = "wasm-lambda-bridge-core"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = []
+hostcall = []
+value = []
+
+[dependencies]
+anyhow = "1.0.57"
+bson = "2.2.0"
+serde = {version = "1.0.137", features = ["derive"]}

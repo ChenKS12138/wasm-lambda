@@ -1,10 +1,14 @@
 [package]
 edition = "2021"
-name = "wasm-lambda-bridge"
+name = "wasm-lambda-bridge-codegen"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+proc-macro = true
+
 [dependencies]
-bridge-codegen = {path = "../bridge-codegen", package = "wasm-lambda-bridge-codegen"}
 bridge-core = {path = "../bridge-core", package = "wasm-lambda-bridge-core", features = ["hostcall", "value"]}
+quote = "1.0.18"
+syn = {version = "1.0.56", features = ["full"]}
