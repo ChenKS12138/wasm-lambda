@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn make_router() -> Arc<Router> {
-    let mut router: Router = Router::default();
+    let mut router: Router = Router::new();
 
     // TODO make route macro
     make_route!(

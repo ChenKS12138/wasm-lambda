@@ -18,7 +18,7 @@ async fn index(_ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
 }
 
 pub fn make_router() -> Arc<Router> {
-    let mut router: Router = Router::default();
+    let mut router: Router = Router::new();
 
     // index
     make_route!(router, Method::GET, "/", index);

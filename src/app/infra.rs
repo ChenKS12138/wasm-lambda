@@ -2,9 +2,8 @@ use std::{collections::HashMap, future::Future, sync::Arc};
 
 use async_trait::async_trait;
 use hyper::{Body, Method, Request, Response, StatusCode};
-// use route_recognizer::{Params, Router as InternalRouter};
-use matchit::{Params, Router as InternalRouter};
 use serde::{Deserialize, Serialize};
+use wasm_lambda_core::router;
 
 use crate::{core::vm::Environment, db::dao::Dao};
 
@@ -24,57 +23,46 @@ where
     }
 }
 
-#[derive(Default)]
-pub struct Router {
-    pub router_map: HashMap<Method, InternalRouter<Arc<Box<dyn Handler>>>>,
+pub struct Router(pub router::Router<hyper::Method, Box<dyn Handler>>);
+
+impl Router {
+    pub fn new() -> Self {
+        Self(router::Router::new())
+    }
+    pub async fn handle(
+        router: Arc<Router>,
+        req: Request<Body>,
+        app_state: AppState,
+    ) -> anyhow::Result<Response<Body>> {
+        if let Some((handler, params)) = router.0.search(&req.method(), req.uri().path()) {
+            return handler
+                .invoke(RequestCtx {
+                    request: req,
+                    params,
+                    app_state: app_state.clone(),
+                })
+                .await;
+        } else {
+            return not_found(RequestCtx {
+                request: req,
+                params: HashMap::default(),
+                app_state: app_state.clone(),
+            })
+            .await;
+        }
+    }
 }
 
 #[macro_export]
 macro_rules! make_route {
     ($router:ident,$method:path,$path:expr,$handler:expr) => {
-        $router
-            .router_map
-            .entry($method)
-            .or_insert(matchit::Router::new())
-            .insert($path, Arc::new(Box::new($handler))).unwrap();
+        $router.0.insert(wasm_lambda_core::router::Route::new($method, $path, Box::new($handler))).unwrap();
     };
     ($route:ident,[ $($method:path),*],$path:expr,$handler:expr ) => {
         $(
             make_route!($route, $method, $path, $handler);
         )*
     };
-}
-
-impl Router {
-    pub async fn handle(
-        router: Arc<Router>,
-        req: Request<Body>,
-        app_state: AppState,
-    ) -> anyhow::Result<Response<Body>> {
-        if let Some(m) = router.router_map.get(req.method()) {
-            if let Ok(m) = m.at(req.uri().path()) {
-                let params: HashMap<String, String> = m
-                    .params
-                    .iter()
-                    .map(|(k, v)| (k.to_string(), v.to_string()))
-                    .collect();
-                let handler = &*m.value.clone();
-                return handler
-                    .invoke(RequestCtx {
-                        request: req,
-                        params,
-                        app_state: app_state.clone(),
-                    })
-                    .await;
-            }
-        }
-        return not_found(RequestCtx {
-            request: req,
-            params: HashMap::default(),
-            app_state: app_state.clone(),
-        })
-        .await;
-    }
 }
 
 async fn not_found(_ctx: RequestCtx) -> anyhow::Result<Response<Body>> {

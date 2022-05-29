@@ -2497,6 +2497,7 @@ dependencies = [
  "tokio",
  "url",
  "wasm-lambda-bridge-core",
+ "wasm-lambda-core",
  "wasmtime",
  "wasmtime-wasi",
 ]
@@ -2507,6 +2508,7 @@ version = "0.1.0"
 dependencies = [
  "wasm-lambda-bridge-codegen",
  "wasm-lambda-bridge-core",
+ "wasm-lambda-core",
 ]
 
 [[package]]
@@ -2525,6 +2527,14 @@ dependencies = [
  "anyhow",
  "bson",
  "serde",
+]
+
+[[package]]
+name = "wasm-lambda-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "matchit",
 ]
 
 [[package]]

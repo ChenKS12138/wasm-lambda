@@ -9,3 +9,4 @@ version = "0.1.0"
 [dependencies]
 bridge-codegen = {path = "../wasm-lambda-bridge-codegen", package = "wasm-lambda-bridge-codegen"}
 bridge-core = {path = "../wasm-lambda-bridge-core", package = "wasm-lambda-bridge-core", features = ["hostcall", "value"]}
+wasm-lambda-core = {path = "../wasm-lambda-core", package = "wasm-lambda-core"}
