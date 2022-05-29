@@ -1,14 +1,12 @@
 pub mod router;
 pub mod service;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 use hyper::{
     service::{make_service_fn, service_fn},
     Server,
 };
-
-use crate::db::dao::Dao;
 
 use self::router::make_router;
 

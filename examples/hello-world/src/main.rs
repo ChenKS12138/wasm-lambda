@@ -4,45 +4,45 @@ use serde_json::{self, json};
 use wasm_lambda_bridge::{
     codegen::{self, get, post},
     core::{
-        value::{Params, Response, TriggerEvent},
-        Result,
+        value::{self, Response},
+        web, Result,
     },
-    dispatch_event, make_headers, make_json_response, make_response,
+    dispatch_event, make_json_response, make_response,
 };
 
-#[derive(Debug, Deserialize, Serialize)]
-struct RestfulResult {
-    code: u64,
-    message: String,
-    data: serde_json::Value,
-}
-
 #[codegen::main]
-fn main(event: TriggerEvent) -> Result<Response> {
-    dispatch_event!(event, [index, login, user_info])
+fn main(event: value::TriggerEvent) -> Result<Response> {
+    dispatch_event!(event, [index, get_user, create_user])
 }
 
 #[get("/")]
-fn index(_event: TriggerEvent, _params: Params) -> Result<Response> {
+fn index(query: web::Query, event: web::TriggerEvent) -> Result<Response> {
+    println!("{:?} {:?}", query, event);
     make_response!("Hello, world!\n")
 }
 
-#[post("/login")]
-fn login(_event: TriggerEvent, _params: Params) -> Result<Response> {
-    make_response!(
-        200,
-        make_headers!(
-            "Content-Type" => "text/plain",
-            "X-FOO" => "bar"
-        ),
-        "login\n"
-    )
+#[get("/user/:user_id")]
+fn get_user(event: web::TriggerEvent, param: web::Params) -> Result<Response> {
+    println!("{:?} {:?}", param, event);
+    make_json_response!(json!({
+        "code": 0,
+        "message": "ok",
+        "data": true
+    }))
 }
 
-#[get("/user/info")]
-fn user_info(_event: TriggerEvent, _params: Params) -> Result<Response> {
+#[derive(Serialize, Deserialize, Debug)]
+struct CreateUserDto {
+    name: String,
+    age: u64,
+}
+
+#[post("/user")]
+fn create_user(data: web::Json<CreateUserDto>) -> Result<Response> {
+    println!("{:?}", data);
     make_json_response!(json!({
-        "code":-1,
-        "message":"Unauthorized",
+        "code": 0,
+        "message": "ok",
+        "data": true
     }))
 }

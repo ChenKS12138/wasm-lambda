@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 use async_trait::async_trait;
-use hyper::{Body, Method, Request, Response, StatusCode};
+use hyper::{Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use wasm_lambda_core::router;
 

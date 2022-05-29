@@ -10,6 +10,5 @@ version = "0.1.0"
 proc-macro = true
 
 [dependencies]
-bridge-core = {path = "../wasm-lambda-bridge-core", package = "wasm-lambda-bridge-core", features = ["hostcall", "value", "web"]}
 quote = "1.0.18"
 syn = {version = "1.0.56", features = ["full"]}

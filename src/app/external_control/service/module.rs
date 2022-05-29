@@ -2,7 +2,7 @@ use hyper::{Body, Response};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::{app::infra::RequestCtx, dao, db_pool, dto, json_response, path_params, query_string};
+use crate::{app::infra::RequestCtx, dao, db_pool, dto, json_response, path_params};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CreateModuleRequestDto {

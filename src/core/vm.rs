@@ -46,7 +46,7 @@ pub struct Environment {
 
 impl Environment {
     pub fn new() -> anyhow::Result<Self> {
-        let mut engine = Engine::new(Config::new().async_support(true))?;
+        let engine = Engine::new(Config::new().async_support(true))?;
         let mut linker = Linker::new(&engine);
         hostcall::add_to_linker(&mut linker)?;
         wasmtime_wasi::add_to_linker(&mut linker, |ctx: &mut InstanceState| &mut ctx.wasi)?;

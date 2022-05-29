@@ -15,5 +15,7 @@ web = []
 [dependencies]
 anyhow = "1.0.57"
 bson = "2.2.0"
+form-data = "0.3.3"
+qstring = "0.7.2"
 serde = {version = "1.0.137", features = ["derive"]}
-wasm-lambda-core = {path = "../wasm-lambda-core", package = "wasm-lambda-core"}
+serde_json = "1.0.42"

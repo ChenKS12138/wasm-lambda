@@ -6,13 +6,17 @@ macro_rules! dispatch_event {
             $(
                 router.insert($make_route()).unwrap();
             )*
+
+
             match $event {
                 wasm_lambda_bridge::core::value::TriggerEvent::EventHttpRequest(request) => {
-                    let (handler, params) = router.search(&request.method,&request.path).unwrap();
+                    let split_idx:usize = request.path.find("?").unwrap_or(request.path.len());
+                    let (handler, params) = router.search(&request.method,&request.path[..split_idx]).unwrap();
                     handler(wasm_lambda_bridge::core::value::TriggerEvent::EventHttpRequest(request),params)
                 },
                 wasm_lambda_bridge::core::value::TriggerEvent::EventInternalModuleCall(module_name,request) => {
-                    let (handler, params) = router.search(&request.method,&request.path).unwrap();
+                    let split_idx:usize = request.path.find("?").unwrap_or(request.path.len());
+                    let (handler, params) = router.search(&request.method,&request.path[..split_idx]).unwrap();
                     handler(wasm_lambda_bridge::core::value::TriggerEvent::EventInternalModuleCall(module_name,request),params)
                 }
             }

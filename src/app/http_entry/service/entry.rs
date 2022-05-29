@@ -2,16 +2,13 @@ use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use hyper::{
     header::{HeaderName, HeaderValue},
-    Body, HeaderMap, Response, StatusCode,
+    Body, Response, StatusCode,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use wasmtime::{Engine, Module};
 
-use crate::{
-    app::infra::RequestCtx, body, db::dao::Dao, db_pool, http_headers, http_method, json_response,
-    path_params,
-};
+use crate::{app::infra::RequestCtx, body, db::dao::Dao, http_headers, http_method, path_params};
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct EntryModuleQuery {
@@ -25,7 +22,7 @@ pub async fn fetch_module_from_dao(
     dao: Arc<Dao>,
     engine: &Engine,
     app_name: &str,
-    version_alias: &str,
+    _version_alias: &str,
 ) -> anyhow::Result<(Module, Vec<(String, String)>, String)> {
     let record = sqlx::query_as!(
         EntryModuleQuery,
@@ -74,10 +71,16 @@ pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
         .unwrap_or("/".to_string());
     let headers = http_headers!(ctx);
     let method = http_method!(ctx);
+    let query = ctx
+        .request
+        .uri()
+        .query()
+        .and_then(|v| Some(format!("?{}", v)))
+        .unwrap_or_default();
     let body = body!(ctx).clone();
 
     let event_request = bridge::value::TriggerEvent::EventHttpRequest(bridge::value::Request {
-        path,
+        path: path + &query,
         method,
         headers: headers,
         body: Some(body),

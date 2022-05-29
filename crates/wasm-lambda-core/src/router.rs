@@ -10,6 +10,15 @@ impl<TMethod, THandler> Route<TMethod, THandler> {
     }
 }
 
+impl<TMethod: Eq + Hash, THandler> TryInto<Router<TMethod, THandler>> for Route<TMethod, THandler> {
+    type Error = anyhow::Error;
+    fn try_into(self) -> Result<Router<TMethod, THandler>, Self::Error> {
+        let mut router = Router::new();
+        router.insert_route(self)?;
+        Ok(router)
+    }
+}
+
 #[derive(Default)]
 pub struct Router<TMethod, THandler> {
     pub router_map: HashMap<TMethod, InternalRouter<Arc<THandler>>>,
@@ -40,6 +49,13 @@ impl<TMethod: Eq + Hash, THandler> Router<TMethod, THandler> {
             })
     }
     pub fn insert(&mut self, route: Route<TMethod, THandler>) -> anyhow::Result<()> {
+        self.router_map
+            .entry(route.0)
+            .or_insert(InternalRouter::new())
+            .insert(route.1, Arc::new(route.2))?;
+        Ok(())
+    }
+    pub fn insert_route(&mut self, route: Route<TMethod, THandler>) -> anyhow::Result<()> {
         self.router_map
             .entry(route.0)
             .or_insert(InternalRouter::new())
