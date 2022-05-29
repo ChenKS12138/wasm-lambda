@@ -3,6 +3,8 @@ use std::collections::HashMap;
 
 pub type ModuleName = String;
 
+pub type Params = HashMap<String, String>;
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Request {
     pub path: String,

@@ -10,6 +10,7 @@ version = "0.1.0"
 default = []
 hostcall = []
 value = []
+web = []
 
 [dependencies]
 anyhow = "1.0.57"

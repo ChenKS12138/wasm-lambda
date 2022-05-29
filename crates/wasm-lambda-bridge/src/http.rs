@@ -9,11 +9,11 @@ macro_rules! dispatch_event {
             match $event {
                 wasm_lambda_bridge::core::value::TriggerEvent::EventHttpRequest(request) => {
                     let (handler, params) = router.search(&request.method,&request.path).unwrap();
-                    handler(wasm_lambda_bridge::core::value::TriggerEvent::EventHttpRequest(request))
+                    handler(wasm_lambda_bridge::core::value::TriggerEvent::EventHttpRequest(request),params)
                 },
                 wasm_lambda_bridge::core::value::TriggerEvent::EventInternalModuleCall(module_name,request) => {
                     let (handler, params) = router.search(&request.method,&request.path).unwrap();
-                    handler(wasm_lambda_bridge::core::value::TriggerEvent::EventInternalModuleCall(module_name,request))
+                    handler(wasm_lambda_bridge::core::value::TriggerEvent::EventInternalModuleCall(module_name,request),params)
                 }
             }
         }
@@ -40,7 +40,6 @@ macro_rules! make_response {
         make_response!($status, wasm_lambda_bridge::make_headers!(), $body)
     };
     ($status:expr,$headers:expr,$body:expr) => {{
-        println!("{:?}", $headers);
         Ok(wasm_lambda_bridge::core::value::Response {
             status: $status,
             headers: $headers,
