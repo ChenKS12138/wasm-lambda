@@ -845,6 +845,8 @@ dependencies = [
 name = "hello-world"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "wasm-lambda-bridge",
 ]
 
@@ -2506,6 +2508,7 @@ dependencies = [
 name = "wasm-lambda-bridge"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "wasm-lambda-bridge-codegen",
  "wasm-lambda-bridge-core",
  "wasm-lambda-core",
@@ -2527,6 +2530,7 @@ dependencies = [
  "anyhow",
  "bson",
  "serde",
+ "wasm-lambda-core",
 ]
 
 [[package]]

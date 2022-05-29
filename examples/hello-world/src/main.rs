@@ -1,40 +1,48 @@
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use serde_json::{self, json};
 
 use wasm_lambda_bridge::{
-    codegen,
+    codegen::{self, get, post},
     core::{
-        value::{self, Response, TriggerEvent},
+        value::{Response, TriggerEvent},
         Result,
     },
+    dispatch_event, make_headers, make_json_response, make_response,
 };
 
-/**
- * make_router!(index,login)(event)
- *
- * #[get("/")]
- * fn index(){
- *
- * }
- *
- */
+#[derive(Debug, Deserialize, Serialize)]
+struct RestfulResult {
+    code: u64,
+    message: String,
+    data: serde_json::Value,
+}
 
 #[codegen::main]
-fn main(_event: TriggerEvent) -> Result<Response> {
-    index(_event)
+fn main(event: TriggerEvent) -> Result<Response> {
+    dispatch_event!(event, [index, login, user_info])
 }
 
+#[get("/")]
 fn index(_event: TriggerEvent) -> Result<Response> {
-    Ok(value::Response {
-        status: 200,
-        headers: HashMap::new(),
-        body: Some("hello world\n".try_into()?),
-    })
+    make_response!("Hello, world!\n")
 }
 
+#[post("/login")]
 fn login(_event: TriggerEvent) -> Result<Response> {
-    Ok(value::Response {
-        status: 200,
-        headers: HashMap::new(),
-        body: Some("login page.\n".try_into()?),
-    })
+    make_response!(
+        200,
+        make_headers!(
+            "Content-Type" => "text/plain",
+            "X-FOO" => "bar"
+        ),
+        "login\n"
+    )
+}
+
+#[get("/user/info")]
+fn user_info(_event: TriggerEvent) -> Result<Response> {
+    make_json_response!(json!({
+        "code":-1,
+        "message":"Unauthorized",
+    }))
 }

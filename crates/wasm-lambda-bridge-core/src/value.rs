@@ -21,7 +21,7 @@ pub struct Response {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum TriggerEvent {
     EventHttpRequest(Request),
-    EventCronTask(Request),
     EventInternalModuleCall(ModuleName, Request),
-    EventManualTask(Request),
+    // EventCronTask(Request),
+    // EventManualTask(Request),
 }
