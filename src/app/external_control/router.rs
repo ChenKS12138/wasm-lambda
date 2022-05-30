@@ -5,7 +5,7 @@ use hyper::{Body, Method, Response, StatusCode};
 use crate::{
     app::{
         external_control::service,
-        infra::{RequestCtx, Router},
+        infra::{RequestCtx, RouteMap, Router},
     },
     make_route,
 };
@@ -18,7 +18,7 @@ async fn index(_ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
 }
 
 pub fn make_router() -> Arc<Router> {
-    let mut router: Router = Router::new();
+    let mut router = RouteMap::new();
 
     // index
     make_route!(router, Method::GET, "/", index);
@@ -78,5 +78,5 @@ pub fn make_router() -> Arc<Router> {
         service::module_version::delete_module_version
     );
 
-    Arc::new(router)
+    Arc::new(router.into())
 }

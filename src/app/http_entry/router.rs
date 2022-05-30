@@ -3,12 +3,15 @@ use std::sync::Arc;
 use hyper::Method;
 
 use crate::{
-    app::{http_entry::service, infra::Router},
+    app::{
+        http_entry::service,
+        infra::{RouteMap, Router},
+    },
     make_route,
 };
 
 pub fn make_router() -> Arc<Router> {
-    let mut router: Router = Router::new();
+    let mut router = RouteMap::new();
 
     // TODO make route macro
     make_route!(
@@ -45,5 +48,5 @@ pub fn make_router() -> Arc<Router> {
         service::entry::entry
     );
 
-    Arc::new(router)
+    Arc::new(router.into())
 }

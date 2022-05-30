@@ -2,11 +2,12 @@
 macro_rules! dispatch_event {
     ($event:expr,[$($make_route:expr),*]) => {
         {
-            let mut router = wasm_lambda_bridge::wasm_lambda_core::router::Router::new();
+            let mut route_map = wasm_lambda_bridge::wasm_lambda_core::router::RouteMap::new();
             $(
-                router.insert($make_route()).unwrap();
+                route_map.insert($make_route()).unwrap();
             )*
 
+            let router:wasm_lambda_bridge::wasm_lambda_core::router::Router<_,_> = route_map.into();
 
             match $event {
                 wasm_lambda_bridge::core::value::TriggerEvent::EventHttpRequest(request) => {

@@ -23,40 +23,38 @@ where
     }
 }
 
-pub struct Router(pub router::Router<hyper::Method, Box<dyn Handler>>);
+#[allow(dead_code)]
+pub type Route = router::Route<hyper::Method, Box<dyn Handler>>;
+pub type RouteMap = router::RouteMap<hyper::Method, Box<dyn Handler>>;
+pub type Router = router::Router<hyper::Method, Box<dyn Handler>>;
 
-impl Router {
-    pub fn new() -> Self {
-        Self(router::Router::new())
-    }
-    pub async fn handle(
-        router: Arc<Router>,
-        req: Request<Body>,
-        app_state: AppState,
-    ) -> anyhow::Result<Response<Body>> {
-        if let Some((handler, params)) = router.0.search(&req.method(), req.uri().path()) {
-            return handler
-                .invoke(RequestCtx {
-                    request: req,
-                    params,
-                    app_state: app_state.clone(),
-                })
-                .await;
-        } else {
-            return not_found(RequestCtx {
+pub async fn router_handle(
+    router: Arc<Router>,
+    req: Request<Body>,
+    app_state: AppState,
+) -> anyhow::Result<Response<Body>> {
+    if let Some((handler, params)) = router.search(&req.method(), req.uri().path()) {
+        return handler
+            .invoke(RequestCtx {
                 request: req,
-                params: HashMap::default(),
+                params,
                 app_state: app_state.clone(),
             })
             .await;
-        }
+    } else {
+        return not_found(RequestCtx {
+            request: req,
+            params: HashMap::default(),
+            app_state: app_state.clone(),
+        })
+        .await;
     }
 }
 
 #[macro_export]
 macro_rules! make_route {
-    ($router:ident,$method:path,$path:expr,$handler:expr) => {
-        $router.0.insert(wasm_lambda_core::router::Route::new($method, $path, Box::new($handler))).unwrap();
+    ($route_map:ident,$method:path,$path:expr,$handler:expr) => {
+        $route_map.insert(wasm_lambda_core::router::Route::new($method, $path, Box::new($handler) as Box<dyn crate::app::infra::Handler>)).unwrap();
     };
     ($route:ident,[ $($method:path),*],$path:expr,$handler:expr ) => {
         $(

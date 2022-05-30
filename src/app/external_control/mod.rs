@@ -8,12 +8,10 @@ use hyper::{
     Server,
 };
 
-use self::router::make_router;
-
-use super::infra::{AppState, Router};
+use super::infra::{router_handle, AppState};
 
 pub async fn make_serve(app_state: AppState) -> anyhow::Result<()> {
-    let router = make_router();
+    let router = router::make_router();
 
     let service = make_service_fn(move |_| {
         let router = router.clone();
@@ -21,7 +19,7 @@ pub async fn make_serve(app_state: AppState) -> anyhow::Result<()> {
 
         async {
             Ok::<_, anyhow::Error>(service_fn(move |req| {
-                Router::handle(router.clone(), req, app_state.clone())
+                router_handle(router.clone(), req, app_state.clone())
             }))
         }
     });
