@@ -10,7 +10,7 @@ use hyper::{
 
 use super::infra::{router_handle, AppState};
 
-pub async fn make_serve(app_state: AppState) -> anyhow::Result<()> {
+pub async fn make_serve(bind_addr: &str, app_state: AppState) -> anyhow::Result<()> {
     let router = router::make_router();
 
     let service = make_service_fn(move |_| {
@@ -23,7 +23,7 @@ pub async fn make_serve(app_state: AppState) -> anyhow::Result<()> {
             }))
         }
     });
-    let addr: SocketAddr = "0.0.0.0:4444".parse()?;
+    let addr: SocketAddr = bind_addr.parse()?;
     Server::bind(&addr).serve(service).await?;
     Ok(())
 }

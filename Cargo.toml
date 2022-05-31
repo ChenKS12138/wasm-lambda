@@ -14,7 +14,7 @@ anyhow = "1.0.53"
 async-trait = "0.1.53"
 bridge = {path = "crates/wasm-lambda-bridge-core", package = "wasm-lambda-bridge-core", features = ["value"]}
 bson = "2.2.0"
-clap = "3.1.18"
+clap = {version = "3.1.18", features = ["derive"]}
 colored = "2.0.0"
 hex = "0.4.3"
 hyper = {version = "0.14.18", features = ["full"]}

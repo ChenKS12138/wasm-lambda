@@ -102,7 +102,7 @@ macro_rules! dao {
 #[macro_export]
 macro_rules! db_pool {
     ($ctx:expr) => {
-        $ctx.app_state.dao.pool
+        $ctx.app_state.dao.unwrap().pool
     };
 }
 
@@ -146,7 +146,7 @@ macro_rules! http_headers {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub dao: Arc<Dao>,
+    pub dao: Option<Arc<Dao>>,
     pub environment: Arc<Environment>,
 }
 

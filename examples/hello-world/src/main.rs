@@ -27,14 +27,12 @@ fn main(event: value::TriggerEvent) -> Result<Response> {
 }
 
 #[get("/")]
-fn index(query: web::Query, event: web::TriggerEvent) -> Result<Response> {
-    println!("{:?} {:?}", query, event);
+fn index(_query: web::Query, _event: web::TriggerEvent) -> Result<Response> {
     make_response!("Hello, world!\n")
 }
 
 #[get("/user/:user_id")]
-fn get_user(event: web::TriggerEvent, param: web::Params) -> Result<Response> {
-    println!("{:?} {:?}", param, event);
+fn get_user(_event: web::TriggerEvent, _param: web::Params) -> Result<Response> {
     make_json_response!(json!({
         "code": 0,
         "message": "ok",
@@ -49,8 +47,7 @@ struct CreateUserDto {
 }
 
 #[post("/user")]
-fn create_user(data: web::Json<CreateUserDto>) -> Result<Response> {
-    println!("{:?}", data);
+fn create_user(_data: web::Json<CreateUserDto>) -> Result<Response> {
     make_json_response!(json!({
         "code": 0,
         "message": "ok",

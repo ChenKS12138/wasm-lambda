@@ -52,7 +52,7 @@ module_owner.owner_name,
 module.version_id
 FROM module LEFT JOIN module_owner ON module.owner_id = module_owner.owner_id"#
     )
-    .fetch_all(&dao!(ctx).pool)
+    .fetch_all(&dao!(ctx).unwrap().pool)
     .await?;
     json_response!(0, "ok", records)
 }
