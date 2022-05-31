@@ -39,6 +39,13 @@ impl<TMethod: Eq + Hash, THandler> RouteMap<TMethod, THandler> {
         Ok(())
     }
 }
+// impl<TMethod: Eq + Hash, THandler> Into<RouteMap<TMethod, THandler>>
+//     for RouteMap<TMethod, THandler>
+// {
+//     fn into(self) -> RouteMap<TMethod, THandler> {
+//         self
+//     }
+// }
 
 #[derive(Default, Clone)]
 pub struct Router<TMethod, THandler> {

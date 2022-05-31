@@ -38,6 +38,9 @@ members = [
   "crates/wasm-lambda-bridge",
   "crates/wasm-lambda-bridge-codegen",
   "crates/wasm-lambda-bridge-core",
+]
+
+exclude = [
   "examples/hello-world",
 ]
 

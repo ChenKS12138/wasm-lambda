@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
 
 use wasm_lambda_bridge::{
-    codegen::{self, get, post},
+    codegen::{self, get, post, resource},
     core::{
         value::{self, Response},
         web, Result,
@@ -10,9 +10,20 @@ use wasm_lambda_bridge::{
     dispatch_event, make_json_response, make_response,
 };
 
+#[resource(prefix = "/", folder = "public/")]
+struct StaticResource;
+
 #[codegen::main]
 fn main(event: value::TriggerEvent) -> Result<Response> {
-    dispatch_event!(event, [index, get_user, create_user])
+    dispatch_event!(
+        event,
+        [
+            index,
+            get_user,
+            create_user,
+            StaticResource::to_make_route_map()
+        ]
+    )
 }
 
 #[get("/")]
