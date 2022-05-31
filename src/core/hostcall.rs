@@ -1,15 +1,16 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::app::http_entry::service::entry::fetch_module_from_dao;
-
-use super::vm::InstanceState;
+use super::vm::{Environment, InstanceState};
 use bridge::value;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use wasmtime::{Caller, Extern, Linker};
 
 const MODULE_NAME: &str = "wasm-lambda-bridge";
 
-pub fn add_to_linker(linker: &mut Linker<InstanceState>) -> anyhow::Result<()> {
+pub fn add_to_linker(
+    linker: &mut Linker<InstanceState>,
+    environment: Arc<Environment>,
+) -> anyhow::Result<()> {
     linker.func_wrap(
         MODULE_NAME,
         "event_recv",
@@ -150,7 +151,7 @@ pub fn add_to_linker(linker: &mut Linker<InstanceState>) -> anyhow::Result<()> {
         MODULE_NAME,
         "module_call_send",
         move |mut caller, module_name_ptr: i32, module_name_len: u64, ptr: i32, len: u64| {
-            let app_state = caller.data().app_state.clone();
+            let environment = environment.clone();
             let io_buffer_clone = caller.data().io_buffer.clone();
             let current_module_name = caller.data().module_name.clone();
             Box::new(async move {
@@ -174,21 +175,10 @@ pub fn add_to_linker(linker: &mut Linker<InstanceState>) -> anyhow::Result<()> {
                     .get(ptr as usize..(ptr as usize + len as usize))
                     .unwrap();
                 let request_data = bson::from_slice::<value::Request>(&request_data).unwrap();
-                let (module, envs, _version_digest_value) = fetch_module_from_dao(
-                    app_state.dao.clone(),
-                    &app_state.environment.engine,
-                    &module_name,
-                    "latest",
-                )
-                .await
-                .unwrap();
-                let response = app_state
-                    .environment
-                    .run(
-                        module_name.clone(),
-                        app_state.clone(),
-                        module,
-                        &envs,
+                let response = environment
+                    .call(
+                        module_name,
+                        "latest".to_string(),
                         bridge::value::TriggerEvent::EventInternalModuleCall(
                             current_module_name,
                             request_data,
@@ -196,7 +186,7 @@ pub fn add_to_linker(linker: &mut Linker<InstanceState>) -> anyhow::Result<()> {
                     )
                     .await
                     .unwrap();
-                if let Some(response) = response {
+                if let Some(response) = response.0 {
                     io_buffer_clone.2.lock().unwrap().push_back(response);
                 }
                 len

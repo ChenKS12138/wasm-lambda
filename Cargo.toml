@@ -14,12 +14,14 @@ anyhow = "1.0.53"
 async-trait = "0.1.53"
 bridge = {path = "crates/wasm-lambda-bridge-core", package = "wasm-lambda-bridge-core", features = ["value"]}
 bson = "2.2.0"
+clap = "3.1.18"
 colored = "2.0.0"
 hex = "0.4.3"
 hyper = {version = "0.14.18", features = ["full"]}
 log = "0.4.17"
 map-macro = "0.2.1"
 matchit = "0.5.0"
+notify = "4.0.17"
 reqwest = {version = "0.11.10"}
 ring = "0.16.20"
 serde = {version = "1.0.137", features = ["derive"]}

@@ -4,10 +4,8 @@ use std::{
 };
 
 use bridge::value;
-use wasmtime::{Config, Engine, Linker, Module, Store};
+use wasmtime::{Config, Engine, Linker, Module as InternalModule, Store};
 use wasmtime_wasi::{self, WasiCtx, WasiCtxBuilder};
-
-use crate::app::infra::AppState;
 
 use super::hostcall;
 
@@ -21,11 +19,10 @@ pub struct InstanceState {
     pub module_name: String,
     pub wasi: WasiCtx,
     pub io_buffer: InstanceIOBuffer,
-    pub app_state: AppState,
 }
 
 impl InstanceState {
-    fn new(module_name: String, wasi_ctx: WasiCtx, app_state: AppState) -> Self {
+    fn new(module_name: String, wasi_ctx: WasiCtx) -> Self {
         Self {
             module_name,
             wasi: wasi_ctx,
@@ -34,43 +31,88 @@ impl InstanceState {
                 Mutex::new(LinkedList::new()),
                 Mutex::new(LinkedList::new()),
             )),
-            app_state,
         }
     }
 }
 
+#[async_trait::async_trait]
+pub trait FetchModule: Send + Sync {
+    async fn fetch_module(
+        &self,
+        engine: Arc<Engine>,
+        module_name: String,
+        version_alias: String,
+    ) -> anyhow::Result<Module>;
+}
+
+#[derive(Clone)]
+pub struct Module {
+    pub module_name: String,
+    pub version_alias: String,
+    pub version_digest: String,
+    pub module: InternalModule,
+    pub envs: Vec<(String, String)>,
+}
+
 pub struct Environment {
-    pub engine: Engine,
-    pub linker: Linker<InstanceState>,
+    pub engine: Arc<Engine>,
+    pub linker: Arc<tokio::sync::Mutex<Linker<InstanceState>>>,
+    pub module_fetcher: Arc<Box<dyn FetchModule>>,
 }
 
 impl Environment {
-    pub fn new() -> anyhow::Result<Self> {
-        let engine = Engine::new(Config::new().async_support(true))?;
-        let mut linker = Linker::new(&engine);
-        hostcall::add_to_linker(&mut linker)?;
-        wasmtime_wasi::add_to_linker(&mut linker, |ctx: &mut InstanceState| &mut ctx.wasi)?;
-        Ok(Self { engine, linker })
+    pub async fn new(module_fetcher: Box<dyn FetchModule>) -> anyhow::Result<Arc<Self>> {
+        let module_fetcher = Arc::new(module_fetcher);
+        let engine = Arc::new(Engine::new(Config::new().async_support(true))?);
+        let linker = Arc::new(tokio::sync::Mutex::new(Linker::new(&engine)));
+        let environment = Arc::new(Self {
+            engine,
+            linker,
+            module_fetcher,
+        });
+        {
+            let mut linker = environment.linker.lock().await;
+            wasmtime_wasi::add_to_linker(&mut linker, |ctx: &mut InstanceState| &mut ctx.wasi)?;
+            hostcall::add_to_linker(&mut linker, environment.clone())?;
+        }
+        Ok(environment)
     }
-    pub async fn run(
+    pub async fn call(
         &self,
         module_name: String,
-        app_state: AppState,
-        module: Module,
-        envs: &[(String, String)],
+        version_alias: String,
         event: bridge::value::TriggerEvent,
-    ) -> anyhow::Result<Option<value::Response>> {
-        let wasi_ctx = WasiCtxBuilder::new().inherit_stdio().envs(envs)?.build();
-        let data = InstanceState::new(module_name, wasi_ctx, app_state);
+    ) -> anyhow::Result<(Option<value::Response>, String)> {
+        let module = self
+            .module_fetcher
+            .fetch_module(
+                self.engine.clone(),
+                module_name.to_string(),
+                version_alias.to_string(),
+            )
+            .await?;
+        let wasi_ctx = WasiCtxBuilder::new()
+            .inherit_stdio()
+            .envs(&module.envs)?
+            .build();
+        let data = InstanceState::new(module_name.to_string(), wasi_ctx);
         {
             let mut io_buffer_evt_in = data.io_buffer.0.lock().unwrap();
             io_buffer_evt_in.push_back(event);
         }
         let mut store = Store::new(&self.engine, data);
-        let instance = self.linker.instantiate_async(&mut store, &module).await?;
+
+        let linker_guard = self.linker.lock().await;
+
+        let instance = linker_guard
+            .instantiate_async(&mut store, &module.module)
+            .await?;
         let start = instance.get_typed_func(&mut store, "_start")?;
         start.call_async(&mut store, ()).await?;
         let mut io_buffer_response = store.data().io_buffer.1.lock().unwrap();
-        Ok(io_buffer_response.pop_front())
+        Ok((
+            io_buffer_response.pop_front(),
+            module.version_digest.clone(),
+        ))
     }
 }
