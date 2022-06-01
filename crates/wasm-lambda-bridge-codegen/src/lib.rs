@@ -98,15 +98,18 @@ macro_rules! route_method {
             let output = &input.sig.output;
 
             quote::quote!(
-                fn #func_name() -> wasm_lambda_bridge::web::router::Route<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> {
-                    wasm_lambda_bridge::web::router::Route::new(String::from($method_value),#path, Box::new(|__event__ , __params__| #output {
+                fn #func_name<'a>() -> wasm_lambda_bridge::web::router::RouteMap<'a,String,Box<wasm_lambda_bridge::web::Handler>, wasm_lambda_bridge::web::MiddlewareContext> {
+                    let route = wasm_lambda_bridge::web::router::Route::new(String::from($method_value),#path, Box::new(|__event__ , __params__| #output {
                         #(#locals)*
                         drop(__event__);
                         drop(__params__);
                         {
                             #block
                         }
-                    }))
+                    } as wasm_lambda_bridge::web::Handler));
+                    let mut route_map:wasm_lambda_bridge::web::router::RouteMap<'a,String,Box<wasm_lambda_bridge::web::Handler>,wasm_lambda_bridge::web::MiddlewareContext> = wasm_lambda_bridge::web::router::RouteMap::new();
+                    route_map.insert_route(route).unwrap();
+                    route_map
                 }
             ).into()
         }
@@ -131,17 +134,9 @@ struct ResourceArgs {
     folder: String,
 }
 
-#[proc_macro_attribute]
-pub fn resource(attrs: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as syn::ItemStruct);
+#[proc_macro]
+pub fn static_resource(attrs: TokenStream) -> TokenStream {
     let attrs = parse_macro_input!(attrs as syn::AttributeArgs);
-    match input.fields {
-        syn::Fields::Unit => (),
-        _ => {
-            panic!("unexpected field");
-        }
-    };
-    let ident = input.ident;
 
     let attrs = match ResourceArgs::from_list(&attrs) {
         Ok(v) => v,
@@ -172,8 +167,6 @@ pub fn resource(attrs: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect();
 
-    // #v1.to_string(),include_bytes!(#v2).to_vec()
-
     let entry_token: Vec<proc_macro2::TokenStream> = entry
         .iter()
         .map(|(v1, v2)| {
@@ -187,23 +180,16 @@ pub fn resource(attrs: TokenStream, item: TokenStream) -> TokenStream {
                         ),
                         include_bytes!(#v2).to_vec()
                     )
-                }))).unwrap();
+                } as wasm_lambda_bridge::web::Handler ))).unwrap();
             ).into()
         })
         .collect();
 
     quote::quote!(
-        struct #ident ;
-
-        impl #ident {
-
-            pub fn to_make_route_map() -> fn() -> wasm_lambda_bridge::web::router::RouteMap<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> {
-                || {
-                    let mut route_map:wasm_lambda_bridge::web::router::RouteMap<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> = wasm_lambda_bridge::web::router::RouteMap::new();
-                    #(#entry_token)*
-                    route_map
-                }
-            }
+        || -> wasm_lambda_bridge::web::router::RouteMap<'static,String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>, wasm_lambda_bridge::web::MiddlewareContext > {
+            let mut route_map = wasm_lambda_bridge::web::router::RouteMap::new();
+            #(#entry_token)*
+            route_map
         }
     )
     .into()

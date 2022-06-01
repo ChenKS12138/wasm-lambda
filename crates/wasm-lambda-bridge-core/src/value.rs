@@ -13,7 +13,7 @@ pub struct Request {
     pub body: Option<Vec<u8>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
     pub status: u64,
     pub headers: HashMap<String, String>,

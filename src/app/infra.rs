@@ -23,10 +23,13 @@ where
     }
 }
 
+type MiddlewareContext = ();
+
 #[allow(dead_code)]
 pub type Route = router::Route<hyper::Method, Box<dyn Handler>>;
-pub type RouteMap = router::RouteMap<hyper::Method, Box<dyn Handler>>;
-pub type Router = router::Router<hyper::Method, Box<dyn Handler>>;
+pub type RouteMap =
+    router::RouteMap<'static, hyper::Method, Arc<Box<dyn Handler>>, MiddlewareContext>;
+pub type Router = router::Router<'static, hyper::Method, Arc<Box<dyn Handler>>, MiddlewareContext>;
 
 pub async fn router_handle(
     router: Arc<Router>,
@@ -35,6 +38,7 @@ pub async fn router_handle(
 ) -> anyhow::Result<Response<Body>> {
     if let Some((handler, params)) = router.search(&req.method(), req.uri().path()) {
         return handler
+            .0
             .invoke(RequestCtx {
                 request: req,
                 params,
@@ -54,7 +58,7 @@ pub async fn router_handle(
 #[macro_export]
 macro_rules! make_route {
     ($route_map:ident,$method:path,$path:expr,$handler:expr) => {
-        $route_map.insert(wasm_lambda_core::router::Route::new($method, $path, Box::new($handler) as Box<dyn crate::app::infra::Handler>)).unwrap();
+        $route_map.insert_route(wasm_lambda_core::router::Route::new($method, $path, Arc::new(Box::new($handler) as Box<dyn crate::app::infra::Handler>))).unwrap();
     };
     ($route:ident,[ $($method:path),*],$path:expr,$handler:expr ) => {
         $(

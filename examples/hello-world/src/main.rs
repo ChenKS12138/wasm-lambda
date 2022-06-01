@@ -2,31 +2,27 @@ use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
 
 use wasm_lambda_bridge::{
-    codegen::{self, get, post, resource},
+    codegen::{self, get, post, static_resource},
     core::value::{self, Response},
-    dispatch_event, make_json_response, make_response, web, Result,
+    make_json_response, make_response, web, Result,
 };
-
-#[resource(prefix = "/", folder = "public/")]
-struct StaticResource;
 
 #[codegen::main]
 fn main(event: value::TriggerEvent) -> Result<Response> {
-    dispatch_event!(
-        event,
-        [
-            index,
-            get_user,
-            create_user,
-            StaticResource::to_make_route_map()
-        ]
-    )
+    // handle_event!(
+    //     event,
+    //     compose_routes!(
+    //         "/",
+    //         [
+    //             index,
+    //             get_user,
+    //             create_user,
+    //             static_resource!(prefix = "/", folder = "public/")
+    //         ]
+    //     )
+    // )
+    make_response!("hello")
 }
-
-// #[get("/*path")]
-// fn not_found() {
-//     make_response!(404, "Not Found")
-// }
 
 #[get("/")]
 fn index(_query: web::Query, _event: web::TriggerEvent) -> Result<Response> {
@@ -56,3 +52,7 @@ fn create_user(_data: web::Json<CreateUserDto>) -> Result<Response> {
         "data": true
     }))
 }
+
+// #[middleware("/")]
+// fn not_found(){
+// }
