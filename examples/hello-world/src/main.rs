@@ -28,7 +28,7 @@ fn main(event: value::TriggerEvent) -> Result<Response> {
 
 #[get("/")]
 fn index(_query: web::Query, _event: web::TriggerEvent) -> Result<Response> {
-    make_response!("Hello, world!\n")
+    make_response!("1233Hello, world!\n")
 }
 
 #[get("/user/:user_id")]

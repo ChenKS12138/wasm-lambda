@@ -61,9 +61,11 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub async fn new(module_fetcher: Box<dyn FetchModule>) -> anyhow::Result<Arc<Self>> {
+    pub async fn new(
+        module_fetcher: Box<dyn FetchModule>,
+        engine: Arc<Engine>,
+    ) -> anyhow::Result<Arc<Self>> {
         let module_fetcher = Arc::new(module_fetcher);
-        let engine = Arc::new(Engine::new(Config::new().async_support(true))?);
         let linker = Arc::new(tokio::sync::Mutex::new(Linker::new(&engine)));
         let environment = Arc::new(Self {
             engine,
@@ -76,6 +78,9 @@ impl Environment {
             hostcall::add_to_linker(&mut linker, environment.clone())?;
         }
         Ok(environment)
+    }
+    pub fn new_engine() -> anyhow::Result<Arc<Engine>> {
+        Ok(Arc::new(Engine::new(Config::new().async_support(true))?))
     }
     pub async fn call(
         &self,

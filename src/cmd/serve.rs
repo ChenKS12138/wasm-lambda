@@ -75,9 +75,10 @@ pub async fn serve(args: ServeArgs) -> anyhow::Result<()> {
 
     let dao = Arc::new(db::dao::Dao::new(db));
 
-    let module_fetch = ModuleFetchFromDao { dao: dao.clone() };
+    let module_fetch = Box::new(ModuleFetchFromDao { dao: dao.clone() });
 
-    let environment = core::vm::Environment::new(Box::new(module_fetch)).await?;
+    let engine = core::vm::Environment::new_engine()?;
+    let environment = core::vm::Environment::new(module_fetch, engine).await?;
     let app_state = AppState {
         dao: Some(dao),
         environment,
