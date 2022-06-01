@@ -27,7 +27,7 @@ pub fn make_router() -> Arc<Router> {
             Method::CONNECT,
             Method::TRACE
         ],
-        "/:app_name/:version_alias/*path",
+        "/:module_name/:version_alias/*path",
         service::entry::entry
     );
 
@@ -44,7 +44,7 @@ pub fn make_router() -> Arc<Router> {
             Method::CONNECT,
             Method::TRACE
         ],
-        "/:app_name/:version_alias",
+        "/:module_name/:version_alias",
         service::entry::entry
     );
 

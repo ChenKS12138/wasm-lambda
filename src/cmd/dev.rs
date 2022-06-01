@@ -6,7 +6,6 @@ use wasmtime::Engine;
 use super::DevArgs;
 use crate::{app::infra::AppState, core};
 
-// TODO improve performance
 struct ModuleFetchFromLocal {
     pre_compiled: std::collections::HashMap<String, Arc<tokio::sync::Mutex<Vec<u8>>>>,
 }

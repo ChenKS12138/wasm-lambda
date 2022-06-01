@@ -583,7 +583,10 @@ checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
 name = "wasm-lambda-bridge"
 version = "0.1.0"
 dependencies = [
+ "form-data",
  "mime",
+ "qstring",
+ "serde",
  "serde_json",
  "wasm-lambda-bridge-codegen",
  "wasm-lambda-bridge-core",
@@ -609,8 +612,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bson",
- "form-data",
- "qstring",
  "serde",
  "serde_json",
 ]

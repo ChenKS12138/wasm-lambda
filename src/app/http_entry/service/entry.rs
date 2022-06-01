@@ -9,7 +9,7 @@ use crate::{app::infra::RequestCtx, body, http_headers, http_method, path_params
 
 pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let params = path_params!(ctx);
-    let app_name = params.get("app_name").unwrap().clone();
+    let module_name = params.get("module_name").unwrap().clone();
     let version_alias = params.get("version_alias").unwrap().clone();
     let path = params
         .get("path")
@@ -35,7 +35,7 @@ pub async fn entry(ctx: RequestCtx) -> anyhow::Result<Response<Body>> {
     let (event_response, version_digest) = ctx
         .app_state
         .environment
-        .call(app_name, version_alias, event_request)
+        .call(module_name, version_alias, event_request)
         .await?;
 
     Ok(match event_response {

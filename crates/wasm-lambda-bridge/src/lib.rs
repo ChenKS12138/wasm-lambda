@@ -1,8 +1,11 @@
+#[cfg(feature = "core")]
 pub use bridge_codegen as codegen;
+#[cfg(feature = "core")]
 pub use bridge_core as core;
-
-pub use wasm_lambda_core;
-pub mod http;
-
-// common library for  deserialize and serialize
+#[cfg(feature = "core")]
+pub use bridge_core::Result;
+#[cfg(feature = "core")]
 pub use serde_json;
+
+#[cfg(feature = "web")]
+pub mod web;

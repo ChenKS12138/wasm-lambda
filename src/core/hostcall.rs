@@ -1,18 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use super::vm::{Environment, InstanceState};
-use bridge::value;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use bridge::{value, WASM_MODULE_NAME};
 use wasmtime::{Caller, Extern, Linker};
-
-const MODULE_NAME: &str = "wasm-lambda-bridge";
 
 pub fn add_to_linker(
     linker: &mut Linker<InstanceState>,
     environment: Arc<Environment>,
 ) -> anyhow::Result<()> {
     linker.func_wrap(
-        MODULE_NAME,
+        WASM_MODULE_NAME,
         "event_recv",
         move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
             if let Some(event) = {
@@ -43,7 +40,7 @@ pub fn add_to_linker(
     )?;
 
     linker.func_wrap(
-        MODULE_NAME,
+        WASM_MODULE_NAME,
         "event_reply",
         move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
             let mem = match caller.get_export("memory") {
@@ -64,7 +61,7 @@ pub fn add_to_linker(
     )?;
 
     linker.func_wrap2_async(
-        MODULE_NAME,
+        WASM_MODULE_NAME,
         "http_fetch_send",
         move |mut caller, ptr: i32, len: u64| {
             let io_buffer_clone = caller.data().io_buffer.clone();
@@ -80,35 +77,36 @@ pub fn add_to_linker(
                     .get(ptr as usize..(ptr as usize + len as usize))
                     .unwrap();
                 let request_data = bson::from_slice::<value::Request>(&request_data).unwrap();
-                let client = reqwest::Client::new();
-                let client = match request_data.method.as_str() {
-                    "GET" => client.get(&request_data.path),
-                    "POST" => client.post(&request_data.path),
-                    "HEAD" => client.head(&request_data.path),
-                    "PUT" => client.put(&request_data.path),
-                    "DELETE" => client.delete(&request_data.path),
-                    "PATCH" => client.patch(&request_data.path),
-                    _ => {
-                        panic!("unsupported method");
-                    }
-                };
-                let mut headers = HeaderMap::new();
+
+                let client = hyper::Client::new();
+                let mut request = hyper::Request::builder()
+                    .method(hyper::Method::from_bytes(request_data.method.as_bytes()).unwrap())
+                    .uri(&request_data.path);
+                let headers = request.headers_mut().unwrap();
                 for header in request_data.headers.iter() {
-                    headers.append(
-                        HeaderName::from_lowercase(header.0.as_bytes()).unwrap(),
-                        HeaderValue::from_str(header.1.as_str()).unwrap(),
+                    headers.insert(
+                        hyper::header::HeaderName::from_bytes(header.0.as_bytes()).unwrap(),
+                        hyper::header::HeaderValue::from_str(header.1.as_str()).unwrap(),
                     );
                 }
-                let client = client.headers(headers);
-                let client = match request_data.body {
-                    Some(body) => client.body(body),
-                    None => client,
-                };
-                let response = client.send().await.unwrap();
+                let request = request
+                    .body(hyper::Body::from(request_data.body.unwrap_or_default()))
+                    .unwrap();
+                let response = client.request(request).await.unwrap();
+                let status = response.status().as_u16() as u64;
+                let headers: HashMap<String, String> = response
+                    .headers()
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), v.to_str().unwrap().to_string()))
+                    .collect();
+                let body = hyper::body::to_bytes(response.into_body())
+                    .await
+                    .unwrap()
+                    .to_vec();
                 let response_data = value::Response {
-                    status: response.status().as_u16() as u64,
-                    headers: HashMap::new(),
-                    body: Some(response.bytes().await.unwrap().to_vec()),
+                    status,
+                    headers: headers,
+                    body: Some(body),
                 };
                 let mut fetch_result = io_buffer_clone.2.lock().unwrap();
                 fetch_result.push_back(response_data);
@@ -118,7 +116,7 @@ pub fn add_to_linker(
     )?;
 
     linker.func_wrap(
-        MODULE_NAME,
+        WASM_MODULE_NAME,
         "http_fetch_recv",
         move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
             if let Some(response) = {
@@ -148,7 +146,7 @@ pub fn add_to_linker(
         },
     )?;
     linker.func_wrap4_async(
-        MODULE_NAME,
+        WASM_MODULE_NAME,
         "module_call_send",
         move |mut caller, module_name_ptr: i32, module_name_len: u64, ptr: i32, len: u64| {
             let environment = environment.clone();
@@ -194,7 +192,7 @@ pub fn add_to_linker(
         },
     )?;
     linker.func_wrap(
-        MODULE_NAME,
+        WASM_MODULE_NAME,
         "module_call_recv",
         move |mut caller: Caller<'_, InstanceState>, ptr: i32, len: u64| -> u64 {
             if let Some(response) = {

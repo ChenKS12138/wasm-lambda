@@ -7,15 +7,12 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = []
+default = ["value"]
 hostcall = []
 value = []
-web = []
 
 [dependencies]
 anyhow = "1.0.57"
 bson = "2.2.0"
-form-data = "0.3.3"
-qstring = "0.7.2"
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.42"

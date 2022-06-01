@@ -6,5 +6,4 @@ pub mod hostcall;
 #[cfg(feature = "value")]
 pub mod value;
 
-#[cfg(feature = "web")]
-pub mod web;
+pub static WASM_MODULE_NAME: &str = "wasm-lambda-bridge";

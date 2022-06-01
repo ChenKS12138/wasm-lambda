@@ -98,8 +98,8 @@ macro_rules! route_method {
             let output = &input.sig.output;
 
             quote::quote!(
-                fn #func_name() -> wasm_lambda_bridge::wasm_lambda_core::router::Route<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> {
-                    wasm_lambda_bridge::wasm_lambda_core::router::Route::new(String::from($method_value),#path, Box::new(|__event__ , __params__| #output {
+                fn #func_name() -> wasm_lambda_bridge::web::router::Route<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> {
+                    wasm_lambda_bridge::web::router::Route::new(String::from($method_value),#path, Box::new(|__event__ , __params__| #output {
                         #(#locals)*
                         drop(__event__);
                         drop(__params__);
@@ -179,7 +179,7 @@ pub fn resource(attrs: TokenStream, item: TokenStream) -> TokenStream {
         .map(|(v1, v2)| {
             let resource_mime = new_mime_guess::from_path(v1).first_or_octet_stream().to_string();
             quote::quote!(
-                route_map.insert_route(wasm_lambda_bridge::wasm_lambda_core::router::Route::new("GET".to_string(),#v1, Box::new(|__event__,__params__| -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response> {
+                route_map.insert_route(wasm_lambda_bridge::web::router::Route::new("GET".to_string(),#v1, Box::new(|__event__,__params__| -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response> {
                     wasm_lambda_bridge::make_response!(
                         200,
                         wasm_lambda_bridge::make_headers!(
@@ -197,9 +197,9 @@ pub fn resource(attrs: TokenStream, item: TokenStream) -> TokenStream {
 
         impl #ident {
 
-            pub fn to_make_route_map() -> fn() -> wasm_lambda_bridge::wasm_lambda_core::router::RouteMap<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> {
+            pub fn to_make_route_map() -> fn() -> wasm_lambda_bridge::web::router::RouteMap<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> {
                 || {
-                    let mut route_map:wasm_lambda_bridge::wasm_lambda_core::router::RouteMap<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> = wasm_lambda_bridge::wasm_lambda_core::router::RouteMap::new();
+                    let mut route_map:wasm_lambda_bridge::web::router::RouteMap<String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>> = wasm_lambda_bridge::web::router::RouteMap::new();
                     #(#entry_token)*
                     route_map
                 }

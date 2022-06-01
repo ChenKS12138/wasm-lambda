@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use serde::de::DeserializeOwned;
 
-use crate::value;
+use bridge_core::value;
 
 #[derive(Debug, Clone)]
 pub struct Params(value::Params);

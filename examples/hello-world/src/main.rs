@@ -3,11 +3,8 @@ use serde_json::{self, json};
 
 use wasm_lambda_bridge::{
     codegen::{self, get, post, resource},
-    core::{
-        value::{self, Response},
-        web, Result,
-    },
-    dispatch_event, make_json_response, make_response,
+    core::value::{self, Response},
+    dispatch_event, make_json_response, make_response, web, Result,
 };
 
 #[resource(prefix = "/", folder = "public/")]
@@ -26,9 +23,14 @@ fn main(event: value::TriggerEvent) -> Result<Response> {
     )
 }
 
+// #[get("/*path")]
+// fn not_found() {
+//     make_response!(404, "Not Found")
+// }
+
 #[get("/")]
 fn index(_query: web::Query, _event: web::TriggerEvent) -> Result<Response> {
-    make_response!("1233Hello, world!\n")
+    make_response!("123Hello, world!\n")
 }
 
 #[get("/user/:user_id")]
