@@ -1,8 +1,10 @@
+// TODO remove this
+#![allow(dead_code)]
+
 use std::{collections::HashMap, hash::Hash, sync::Arc};
 
+use super::middleware;
 use matchit::Router as InternalRouter;
-
-pub mod middleware;
 
 #[derive(Default, Clone, Debug)]
 pub struct Route<TMethod, THandler>(TMethod, String, Arc<THandler>);

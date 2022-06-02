@@ -28,14 +28,12 @@ serde_json = "1.0.81"
 sqlx = {version = "0.5.13", features = ["mysql", "runtime-tokio-native-tls", "migrate", "json"]}
 tokio = {version = "1.17.0", features = ["full"]}
 url = "2.2.2"
-wasm-lambda-core = {path = "crates/wasm-lambda-core", package = "wasm-lambda-core"}
 wasmtime = "0.37.0"
 wasmtime-wasi = "0.37.0"
 
 [workspace]
 
 members = [
-  "crates/wasm-lambda-core",
   "crates/wasm-lambda-bridge",
   "crates/wasm-lambda-bridge-codegen",
   "crates/wasm-lambda-bridge-core",

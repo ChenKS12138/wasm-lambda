@@ -2,7 +2,7 @@ use hyper::{Body, Response};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::{app::infra::RequestCtx, dao, db_pool, dto, json_response, path_params};
+use crate::{app::infra::RequestCtx, db_pool, dto, json_response, path_params};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CreateModuleRequestDto {
@@ -52,7 +52,7 @@ module_owner.owner_name,
 module.version_id
 FROM module LEFT JOIN module_owner ON module.owner_id = module_owner.owner_id"#
     )
-    .fetch_all(&dao!(ctx).unwrap().pool)
+    .fetch_all(&db_pool!(ctx))
     .await?;
     json_response!(0, "ok", records)
 }

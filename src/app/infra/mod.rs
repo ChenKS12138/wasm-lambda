@@ -1,9 +1,12 @@
+pub mod middleware;
+pub mod router;
+
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 use async_trait::async_trait;
 use hyper::{Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
-use wasm_lambda_core::router;
+// use wasm_lambda_core::router;
 
 use crate::{core::vm::Environment, db::dao::Dao};
 
@@ -58,7 +61,7 @@ pub async fn router_handle(
 #[macro_export]
 macro_rules! make_route {
     ($route_map:ident,$method:path,$path:expr,$handler:expr) => {
-        $route_map.insert_route(wasm_lambda_core::router::Route::new($method, $path, Arc::new(Box::new($handler) as Box<dyn crate::app::infra::Handler>))).unwrap();
+        $route_map.insert_route(crate::app::infra::router::Route::new($method, $path, Arc::new(Box::new($handler) as Box<dyn crate::app::infra::Handler>))).unwrap();
     };
     ($route:ident,[ $($method:path),*],$path:expr,$handler:expr ) => {
         $(

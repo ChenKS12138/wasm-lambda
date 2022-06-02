@@ -1,3 +1,6 @@
+// TODO remove this
+#![allow(dead_code)]
+
 use std::{ops::Deref, sync::Arc};
 
 pub enum MiddlewareNext<'a, TContext> {

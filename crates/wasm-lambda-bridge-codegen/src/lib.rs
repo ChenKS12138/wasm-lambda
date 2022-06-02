@@ -98,18 +98,19 @@ macro_rules! route_method {
             let output = &input.sig.output;
 
             quote::quote!(
-                fn #func_name<'a>() -> wasm_lambda_bridge::web::router::RouteMap<'a,String,Box<wasm_lambda_bridge::web::Handler>, wasm_lambda_bridge::web::MiddlewareContext> {
-                    let route = wasm_lambda_bridge::web::router::Route::new(String::from($method_value),#path, Box::new(|__event__ , __params__| #output {
-                        #(#locals)*
-                        drop(__event__);
-                        drop(__params__);
-                        {
-                            #block
-                        }
-                    } as wasm_lambda_bridge::web::Handler));
-                    let mut route_map:wasm_lambda_bridge::web::router::RouteMap<'a,String,Box<wasm_lambda_bridge::web::Handler>,wasm_lambda_bridge::web::MiddlewareContext> = wasm_lambda_bridge::web::router::RouteMap::new();
-                    route_map.insert_route(route).unwrap();
-                    route_map
+                fn #func_name<'a>() -> wasm_lambda_bridge::web::Router<'a> {
+                    let mut router = wasm_lambda_bridge::web::Router::new("");
+                    router.insert($method_value,#path, std::sync::Arc::new(
+                        wasm_lambda_bridge::web::Handler::new(move |__event__, __params__| #output {
+                            #(#locals)*
+                            drop(__event__);
+                            drop(__params__);
+                            {
+                                #block
+                            }
+                        }).into()
+                    ));
+                    router.into()
                 }
             ).into()
         }
@@ -172,24 +173,52 @@ pub fn static_resource(attrs: TokenStream) -> TokenStream {
         .map(|(v1, v2)| {
             let resource_mime = new_mime_guess::from_path(v1).first_or_octet_stream().to_string();
             quote::quote!(
-                route_map.insert_route(wasm_lambda_bridge::web::router::Route::new("GET".to_string(),#v1, Box::new(|__event__,__params__| -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response> {
-                    wasm_lambda_bridge::make_response!(
-                        200,
-                        wasm_lambda_bridge::make_headers!(
-                            "Content-Type" => #resource_mime
-                        ),
-                        include_bytes!(#v2).to_vec()
-                    )
-                } as wasm_lambda_bridge::web::Handler ))).unwrap();
+                router.insert("GET",#v1,std::sync::Arc::new(
+                    wasm_lambda_bridge::web::Handler::new(move |__event__,__params__| -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response> {
+                        Ok(wasm_lambda_bridge::make_response!(
+                            200,
+                            wasm_lambda_bridge::make_headers!(
+                                "Content-Type" => #resource_mime
+                            ),
+                            include_bytes!(#v2).to_vec()
+                        ))
+                    }).into()
+                ));
             ).into()
         })
         .collect();
 
     quote::quote!(
-        || -> wasm_lambda_bridge::web::router::RouteMap<'static,String,Box<fn(wasm_lambda_bridge::core::value::TriggerEvent,std::collections::HashMap<String,String>) -> wasm_lambda_bridge::core::Result<wasm_lambda_bridge::core::value::Response >>, wasm_lambda_bridge::web::MiddlewareContext > {
-            let mut route_map = wasm_lambda_bridge::web::router::RouteMap::new();
-            #(#entry_token)*
-            route_map
+        {
+            ||  {
+                let mut router:wasm_lambda_bridge::web::Router<'_> = wasm_lambda_bridge::web::Router::new("");
+                #(#entry_token)*
+                router
+            }
+        }
+    )
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn middleware(_args: TokenStream, item: TokenStream) -> TokenStream {
+    let input: syn::ItemFn = match syn::parse(item.clone()) {
+        Ok(it) => it,
+        Err(e) => return token_stream_with_error(item, e),
+    };
+
+    let func_args = &input.clone().sig.inputs;
+    let func_args: Vec<&FnArg> = func_args.iter().collect();
+
+    let func_name = input.sig.ident.clone();
+    let block = &input.block;
+    let output = &input.sig.output;
+
+    quote::quote!(
+        fn #func_name() -> wasm_lambda_bridge::web::Middleware<'static> {
+            wasm_lambda_bridge::web::Middleware::new(Arc::new(Box::new(|#(#func_args),*| #output {
+                #block
+            })))
         }
     )
     .into()

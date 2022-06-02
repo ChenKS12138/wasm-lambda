@@ -173,6 +173,7 @@ impl Deref for TriggerEvent {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Headers(std::collections::HashMap<String, String>);
 
 impl From<(&value::TriggerEvent, &value::Params)> for Headers {
