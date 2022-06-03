@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ChenKS12138/wasm-lambda/actions/workflows/CI.yml/badge.svg)](https://github.com/ChenKS12138/wasm-lambda/actions/workflows/CI.yml)
 
-A serverless service tool based on [WebAssembly](https://webassembly.org), provides a simple way to write serverless module.
+A FaaS service tool based on [WebAssembly](https://webassembly.org), provides a simple way to write web service.
 
 ## Usage
 
@@ -18,14 +18,14 @@ cargo install --path .
 
 ```shell
 cd examples/hello-world
-cargo build --release
+cargo build
 ```
 
 3. Dev And Auto-reload
 
 ```shell
 # Start Dev Server
-wasm-lambda dev --bind 0.0.0.0:3000 -m hello-world:./target/wasm32-wasi/release/hello-world.wasm
+wasm-lambda dev --bind 0.0.0.0:3000 -m hello-world:./target/wasm32-wasi/debug/hello-world.wasm
 
 # Rebuild
 # cargo build
