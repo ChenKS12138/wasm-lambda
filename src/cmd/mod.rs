@@ -26,6 +26,9 @@ pub struct DevArgs {
 
     #[clap(short, long, parse(try_from_str = parse_modules_list), help = "List of modules to load")]
     module: Vec<(String, String)>,
+
+    #[clap(short, long, parse(try_from_str = parse_envs_list), help = "List of modules to load")]
+    env: Vec<(String, String)>,
 }
 
 #[derive(Parser, Debug)]
@@ -44,6 +47,16 @@ pub struct ServeArgs {
 fn parse_modules_list(input: &str) -> Result<(String, String), &'static str> {
     let input = input.to_string();
     if let Some(idx) = input.find(":") {
+        let (module, version) = input.split_at(idx);
+        Ok((module.to_string(), version[1..].to_string()))
+    } else {
+        Err("expected format <module_name>:<module_file_path>")
+    }
+}
+
+fn parse_envs_list(input: &str) -> Result<(String, String), &'static str> {
+    let input = input.to_string();
+    if let Some(idx) = input.find("=") {
         let (module, version) = input.split_at(idx);
         Ok((module.to_string(), version[1..].to_string()))
     } else {

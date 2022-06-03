@@ -1,0 +1,71 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { name: Linux, os: ubuntu-latest, triple: x86_64-unknown-linux-gnu }
+        #          - { name: macOS, os: macos-latest, triple: x86_64-apple-darwin }
+        #          - { name: Windows, os: windows-latest, triple: x86_64-pc-windows-msvc }
+        version:
+          # - 1.61.0
+          - stable
+          # - nightly
+    name: ${{ matrix.target.name }} / ${{ matrix.version }}
+    runs-on: ${{ matrix.target.os }}
+
+    services:
+      mariadb:
+        image: mariadb:10
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_USER: local
+          MARIADB_PASSWORD: local
+          MARIADB_DATABASE: db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=10s --health-retries=10
+
+    env:
+      VCPKGRS_DYNAMIC: 1
+      DATABASE_URL: mariadb://local:local@127.0.0.1:3306/db
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set vcpkg root
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Install OpenSSL
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: vcpkg install openssl:x64-windows
+
+      - name: Install ${{ matrix.version }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.version }}-${{ matrix.target.triple }}
+
+      - name: Generate Cargo.lock
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-lockfile
+
+      - name: Cache Dependencies
+        uses: Swatinem/rust-cache@v1.2.0
+
+      - name: Install sqlx-cli
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: sqlx-cli
+
+      - run: sqlx migrate run
+      - run: cargo test -v
+      - run: cargo build -v

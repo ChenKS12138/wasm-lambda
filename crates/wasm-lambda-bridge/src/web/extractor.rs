@@ -4,7 +4,6 @@ use serde::de::DeserializeOwned;
 
 use bridge_core::value;
 
-#[derive(Debug, Clone)]
 pub struct Params(value::Params);
 
 impl From<(&value::TriggerEvent, &value::Params)> for Params {

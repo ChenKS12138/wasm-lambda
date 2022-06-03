@@ -216,7 +216,7 @@ pub fn middleware(_args: TokenStream, item: TokenStream) -> TokenStream {
 
     quote::quote!(
         fn #func_name() -> wasm_lambda_bridge::web::Middleware<'static> {
-            wasm_lambda_bridge::web::Middleware::new(Arc::new(Box::new(|#(#func_args),*| #output {
+            wasm_lambda_bridge::web::Middleware::new(std::sync::Arc::new(Box::new(|#(#func_args),*| #output {
                 #block
             })))
         }

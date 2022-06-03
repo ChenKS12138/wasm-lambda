@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
 
@@ -23,7 +21,10 @@ fn main(event: value::TriggerEvent) -> Result<Response> {
                 "/",
                 [
                     static_resource!(prefix = "/", folder = "public/"),
-                    compose_routers!("/api", [index, get_user, create_user])
+                    compose_routers!(
+                        "/api",
+                        [index, capitalize_sentence, echo_query, echo_person]
+                    )
                 ]
             )
         ]
@@ -31,34 +32,41 @@ fn main(event: value::TriggerEvent) -> Result<Response> {
 }
 
 #[get("/")]
-fn index(query: web::Query, _event: web::TriggerEvent, headers: web::Headers) -> Result<Response> {
-    Ok(make_response!(format!(
-        "123Hello, world! {:?} {:?}\n",
-        query, headers
-    )))
+fn index(event: web::TriggerEvent) -> Result<Response> {
+    Ok(make_response!(format!("Hello World!\n {:?}\n", event)))
 }
 
-#[get("/user/:user_id")]
-fn get_user(_event: web::TriggerEvent, param: web::Params) -> Result<Response> {
-    Ok(make_json_response!(json!({
-        "code": 0,
-        "message": "ok",
-        "data": format!("{:?}",param)
-    })))
+#[get("/capitalize/:sentence")]
+fn capitalize_sentence(params: web::Params) -> Result<Response> {
+    let sentence = params
+        .get("sentence")
+        .and_then(|v| Some(v.to_string()))
+        .unwrap_or_default();
+    let sentence: String = sentence
+        .chars()
+        .map(|v| v.to_uppercase().nth(0).unwrap_or_default())
+        .into_iter()
+        .collect();
+    Ok(make_response!(format!("Result: {}", sentence)))
+}
+
+#[get("/echo-query")]
+fn echo_query(query: web::Query) -> Result<Response> {
+    Ok(make_response!(format!("Result: {:?}", query)))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct CreateUserDto {
+struct Person {
     name: String,
     age: u64,
 }
 
-#[post("/user")]
-fn create_user(_data: web::Json<CreateUserDto>) -> Result<Response> {
+#[post("/echo-person")]
+fn echo_person(data: web::Json<Person>) -> Result<Response> {
     Ok(make_json_response!(json!({
         "code": 0,
         "message": "ok",
-        "data": true
+        "data": *data
     })))
 }
 
@@ -78,7 +86,7 @@ fn try_index_html(context: MiddlewareContext, next: MiddlewareNext) -> Middlewar
         context.1 = Some(make_response!(
             301,
             make_headers!(
-                "Location"=> "/portal/latest/index.html"
+                "Location"=> "/hello-world/latest/index.html"
             ),
             ""
         ));

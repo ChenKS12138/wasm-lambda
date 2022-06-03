@@ -53,18 +53,17 @@ impl ModuleFetchFromLocal {
 
                     while let Ok(event) = change_rx.recv() {
                         match event {
-                            notify::DebouncedEvent::NoticeWrite(_)
-                            | notify::DebouncedEvent::NoticeRemove(_)
+                            notify::DebouncedEvent::Remove(_)
                             | notify::DebouncedEvent::Rescan
                             | notify::DebouncedEvent::Create(_)
                             | notify::DebouncedEvent::Chmod(_)
-                            | notify::DebouncedEvent::Remove(_)
                             | notify::DebouncedEvent::Rename(_, _)
-                            | notify::DebouncedEvent::Error(_, _) => {}
-
-                            notify::DebouncedEvent::Write(_) => {
+                            | notify::DebouncedEvent::Write(_) => {
                                 let _ = watcher_tx.blocking_send(());
                             }
+                            notify::DebouncedEvent::Error(_, _)
+                            | notify::DebouncedEvent::NoticeRemove(_)
+                            | notify::DebouncedEvent::NoticeWrite(_) => {}
                         }
                     }
                 })

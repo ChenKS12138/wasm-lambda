@@ -1,3 +1,5 @@
+mod domain;
+
 use serde_json::json;
 use wasm_lambda_bridge::{
     codegen::{self, get},

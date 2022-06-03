@@ -88,7 +88,7 @@ impl Environment {
         version_alias: String,
         event: bridge::value::TriggerEvent,
     ) -> anyhow::Result<(Option<value::Response>, String)> {
-        let module = self
+        let mut module = self
             .module_fetcher
             .fetch_module(
                 self.engine.clone(),
@@ -96,6 +96,8 @@ impl Environment {
                 version_alias.to_string(),
             )
             .await?;
+        module.envs.push(("MODULE_NAME".to_string(), module_name.to_string()));
+        module.envs.push(("MODULE_VERSION".to_string(), version_alias.to_string()));
         let wasi_ctx = WasiCtxBuilder::new()
             .inherit_stdio()
             .envs(&module.envs)?
