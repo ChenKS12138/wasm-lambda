@@ -1,0 +1,11 @@
+[package]
+edition = "2021"
+name = "portal"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = "1.0.137"
+serde_json = "1.0.81"
+wasm-lambda-bridge = {path = "../../crates/wasm-lambda-bridge", package = "wasm-lambda-bridge"}

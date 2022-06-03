@@ -41,6 +41,7 @@ members = [
 
 exclude = [
   "examples/hello-world",
+  "modules/portal",
 ]
 
 # TODO package
