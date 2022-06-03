@@ -1,5 +1,7 @@
 # wasm-lambda
 
+[![CI](https://github.com/ChenKS12138/wasm-lambda/actions/workflows/CI.yml/badge.svg)](https://github.com/ChenKS12138/wasm-lambda/actions/workflows/CI.yml)
+
 A serverless service tool based on [WebAssembly](https://webassembly.org), provides a simple way to write serverless module.
 
 ## Usage
