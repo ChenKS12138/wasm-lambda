@@ -10,26 +10,29 @@ version = "0.1.0"
 entry_profile = []
 
 [dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.66"
 async-trait = "0.1.53"
 bridge = {path = "crates/wasm-lambda-bridge-core", package = "wasm-lambda-bridge-core", features = ["value"]}
 bson = "2.2.0"
-clap = {version = "3.1.18", features = ["derive"]}
+clap = {version = "4.0.18", features = ["derive"]}
 colored = "2.0.0"
 hex = "0.4.3"
 hyper = {version = "0.14.18", features = ["full"]}
-log = "0.4.17"
 map-macro = "0.2.1"
-matchit = "0.5.0"
-notify = "4.0.17"
+matchit = "0.6.0"
+notify = "5.0.0"
 ring = "0.16.20"
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
-sqlx = {version = "0.5.13", features = ["mysql", "runtime-tokio-native-tls", "migrate", "json"]}
 tokio = {version = "1.17.0", features = ["full"]}
 url = "2.2.2"
-wasmtime = "0.37.0"
-wasmtime-wasi = "0.37.0"
+wasmtime = "2.0.1"
+wasmtime-wasi = "2.0.1"
+toml = "0.5.9"
+strum_macros = "0.24.1"
+strum = "0.24.1"
+log = "0.4.17"
+env_logger = "0.9.1"
 
 [workspace]
 
@@ -41,7 +44,6 @@ members = [
 
 exclude = [
   "examples/hello-world",
-  "modules/portal",
 ]
 
 # TODO package

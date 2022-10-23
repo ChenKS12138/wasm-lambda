@@ -60,12 +60,5 @@ jobs:
       - name: Cache Dependencies
         uses: Swatinem/rust-cache@v1.2.0
 
-      - name: Install sqlx-cli
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: sqlx-cli
-
-      - run: sqlx migrate run
       - run: cargo test -v
       - run: cargo build -v

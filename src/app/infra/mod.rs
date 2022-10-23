@@ -8,7 +8,7 @@ use hyper::{Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 // use wasm_lambda_core::router;
 
-use crate::{core::vm::Environment, db::dao::Dao};
+use crate::core::vm::Environment;
 
 #[async_trait]
 pub trait Handler: Send + Sync + 'static {
@@ -153,7 +153,7 @@ macro_rules! http_headers {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub dao: Option<Arc<Dao>>,
+    // pub dao: Option<Arc<Dao>>,
     pub environment: Arc<Environment>,
 }
 

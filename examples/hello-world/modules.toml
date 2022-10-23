@@ -1,0 +1,11 @@
+
+[global]
+bind="0.0.0.0:5555"
+
+[modules.HelloWorld]
+prefix="hello-world"
+bin="target/wasm32-wasi/debug/hello-world.wasm"
+
+[modules.HelloWorld.env]
+FOO="bar"
+BAR="123"

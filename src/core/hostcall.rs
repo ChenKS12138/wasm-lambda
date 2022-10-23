@@ -176,7 +176,6 @@ pub fn add_to_linker(
                 let response = environment
                     .call(
                         module_name,
-                        "latest".to_string(),
                         bridge::value::TriggerEvent::EventInternalModuleCall(
                             current_module_name,
                             request_data,

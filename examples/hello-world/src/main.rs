@@ -12,23 +12,24 @@ use wasm_lambda_bridge::{
 
 #[codegen::main]
 fn main(event: value::TriggerEvent) -> Result<Response> {
-    dispatch!(
-        event,
-        [
-            not_found,
-            try_index_html,
-            compose_routers!(
-                "/",
-                [
-                    static_resource!(prefix = "/", folder = "public/"),
-                    compose_routers!(
-                        "/api",
-                        [index, capitalize_sentence, echo_query, echo_person]
-                    )
-                ]
-            )
-        ]
-    )
+    Ok(make_response!("foo123"))
+    // dispatch!(
+    //     event,
+    //     [
+    //         not_found,
+    //         try_index_html,
+    //         compose_routers!(
+    //             "/",
+    //             [
+    //                 static_resource!(prefix = "/", folder = "public/"),
+    //                 compose_routers!(
+    //                     "/api",
+    //                     [index, capitalize_sentence, echo_query, echo_person]
+    //                 )
+    //             ]
+    //         )
+    //     ]
+    // )
 }
 
 #[get("/")]

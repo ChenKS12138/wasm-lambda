@@ -36,19 +36,17 @@ impl InstanceState {
 }
 
 #[async_trait::async_trait]
-pub trait FetchModule: Send + Sync {
+pub trait WasmModuleLoader: Send + Sync {
     async fn fetch_module(
         &self,
         engine: Arc<Engine>,
-        module_name: String,
-        version_alias: String,
+        module_prefix: String,
     ) -> anyhow::Result<Module>;
 }
 
 #[derive(Clone)]
 pub struct Module {
     pub module_name: String,
-    pub version_alias: String,
     pub version_digest: String,
     pub module: InternalModule,
     pub envs: Vec<(String, String)>,
@@ -57,12 +55,12 @@ pub struct Module {
 pub struct Environment {
     pub engine: Arc<Engine>,
     pub linker: Arc<tokio::sync::Mutex<Linker<InstanceState>>>,
-    pub module_fetcher: Arc<Box<dyn FetchModule>>,
+    pub module_fetcher: Arc<Box<dyn WasmModuleLoader>>,
 }
 
 impl Environment {
     pub async fn new(
-        module_fetcher: Box<dyn FetchModule>,
+        module_fetcher: Box<dyn WasmModuleLoader>,
         engine: Arc<Engine>,
     ) -> anyhow::Result<Arc<Self>> {
         let module_fetcher = Arc::new(module_fetcher);
@@ -85,19 +83,15 @@ impl Environment {
     pub async fn call(
         &self,
         module_name: String,
-        version_alias: String,
         event: bridge::value::TriggerEvent,
     ) -> anyhow::Result<(Option<value::Response>, String)> {
         let mut module = self
             .module_fetcher
-            .fetch_module(
-                self.engine.clone(),
-                module_name.to_string(),
-                version_alias.to_string(),
-            )
+            .fetch_module(self.engine.clone(), module_name.to_string())
             .await?;
-        module.envs.push(("MODULE_NAME".to_string(), module_name.to_string()));
-        module.envs.push(("MODULE_VERSION".to_string(), version_alias.to_string()));
+        module
+            .envs
+            .push(("MODULE_NAME".to_string(), module_name.to_string()));
         let wasi_ctx = WasiCtxBuilder::new()
             .inherit_stdio()
             .envs(&module.envs)?
