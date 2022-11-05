@@ -1,5 +1,3 @@
-use log::set_max_level;
-
 #[macro_use]
 extern crate log;
 

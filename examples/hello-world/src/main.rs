@@ -12,7 +12,7 @@ use wasm_lambda_bridge::{
 
 #[codegen::main]
 fn main(event: value::TriggerEvent) -> Result<Response> {
-    Ok(make_response!("foo123"))
+    Ok(make_response!("hello"))
     // dispatch!(
     //     event,
     //     [
